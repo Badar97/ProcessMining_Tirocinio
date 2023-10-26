@@ -41,8 +41,8 @@ In questo script viene utilizzato per la lettura del dataset, si consiglia di co
 import torch
 import pandas as pd
 import numpy as np
-import networkx as nx
-from torch_geometric.data import InMemoryDataset, Data
+#import networkx as nx
+#from torch_geometric.data import InMemoryDataset, Data
 import os
 import config 
 

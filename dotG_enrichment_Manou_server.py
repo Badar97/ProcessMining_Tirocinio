@@ -144,6 +144,9 @@ def v_case(wfile, word, index, log):
         #when "concept:name" == tmp && the node count is right, we write in destination file the line + additional info
         #NOTE: we add 2 space for the execution of "temporal_calculated_features.py" file
         #HARDCODED sul campo chiamato concept:name
+
+        #print(index)
+
         if (tmp == log[index][event_index]['concept:name'] and word[1] == str(count)):
           params_tracks = ""
           for elem in lista_param_tracce:
@@ -187,7 +190,7 @@ def add_info(path_w, path_r, log):
                 trace_index = trace_index + 1;
             #if the first element of list is 'v' --> the line refers to a node (event) --> we have to add additional informations
             if riga[0] =='v':
-                v_case(w, riga,trace_index, log)
+                v_case(w, riga, trace_index, log)
             elif riga[0] =='e':
                 #if the first element of list is 'e' --> the line refers to an edge --> no additional informations. We only write the line in the destination file
                 e_case(w, riga)
@@ -252,7 +255,7 @@ with open(path_w + 'merged.g', 'w') as outfile:
 import pandas as pd
 import numpy as np
 import datetime
-import networkx as nx
+#import networkx as nx
 from tensorflow.keras.utils import to_categorical
 import math
 
@@ -299,7 +302,11 @@ df = pd.read_csv(path_read, sep=" ", names=names2, dtype={'name_track':str} ) #a
 
 #until here it's okay!
 df.timestamp = df.timestamp.apply(lambda x: str(x)[:18])
-df['timestamp']=pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S') #add utc to be sure
+
+#df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S', errors='coerce')
+df['timestamp']=pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S') #add utc to be sure (,utc=True)
+#df['timestamp']=pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S', utc=True)
+
 tmp=df.timestamp
 df['finish']=tmp
 df.drop(['timestamp'], axis=1, inplace = True)
@@ -558,13 +565,17 @@ print_file.write('Start with extra own features...\n')
 print_file.flush()
 print_file.write('read data frame...\n')
 print_file.flush()
-targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,79)]),dtype={'caseID_hash': str},low_memory=False) 
+targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,79)]),dtype={'Case ID': str},low_memory=False)
+#targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,16)]),dtype={'Case ID': str},low_memory=False) 
 targetframe=targetframe.drop(['Weekday','matgroup_4', 'matgroup_7', 'matgroup_others']+list(targetframe.filter(like='Weekday_').columns)+list(targetframe.filter(like='ACTIVITY_EN_').columns), axis=1)
 print_file.write('add bins for categories...\n')
 print_file.flush()
+## Discretizzazione dei valori
+
 for c in ['bu_','plant_', 'item_', 'vendor_','MatnrShort_']:
-    targetframe['bins_{}'.format(c)]=targetframe.filter(like=c).idxmax(axis=1) 
-    targetframe.drop(list(targetframe.filter(like=c).columns)[:-1],axis=1,inplace=True)
+  targetframe['bins_{}'.format(c)]=targetframe.filter(like=c).idxmax(axis=1) 
+  targetframe.drop(list(targetframe.filter(like=c).columns)[:-1],axis=1,inplace=True)
+
 dtl=targetframe['Days too late']
 targetframe.drop('Days too late',axis=1,inplace=True)
 targetframe['Days too late']=dtl
@@ -572,7 +583,8 @@ targetframe['Days too late']=dtl
 print_file.write('groupby target frame...\n')
 print_file.flush()
 # targetframe=targetframe.groupby('caseID_hash',sort=False,as_index=False)['Days too late'] #.agg('max')
-targetframe=targetframe.groupby('caseID_hash',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
+targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
+#targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
 idx=list(range(3,7))+list(range(10,len(targetframe.columns)))
 columns=list(np.array(targetframe.columns)[idx])
 
@@ -580,6 +592,7 @@ print_file.write('Set values, sizes and array for all features + target and add 
 print_file.flush()
 sizes=np.array(g_dataframe.groupby('name_track',sort=False,as_index=False).size()['size'])
 idxss=list(np.where(~g_dataframe['name_track'].isnull()))[0]
+
 for i in columns:
     print_file.write('add {} to g_dataframe...\n'.format(i))
     print_file.flush()
@@ -590,6 +603,7 @@ for i in columns:
         arr.index=idxss
         g_dataframe['target']=arr
     else:
+        g_tmp = targetframe[i]
         g_dataframe[i]=[np.nan]*len(g_dataframe)
         arr=pd.Series(arr)
         arr.index=idxss
@@ -670,7 +684,7 @@ to_norm = {'e_v': 0, 'node1': 0, 'node2': 0, 'name_event': 0, 'name_track':0,
 
 # does the normalization and the encoding
 #bool var that must be true if cat_features are selected to be encoded
-cat_encoding = False
+cat_encoding = True
 for i in range(len(to_norm.values())):
   if list(to_norm.values())[i] == 2 and cat_encoding is False:
     cat_encoding = True

@@ -71,6 +71,7 @@ args=config.load()
 #import entire log
 #make petri net
 log_total=pm4py.read_xes('./Input/xes/'+args.xes_name)
+
 log_total_frame= pm4py.convert_to_dataframe(log_total)
 
 
@@ -135,10 +136,47 @@ pm4py.write_pnml(net, initial_marking,final_marking,'dgcnn_log_sample_net_starte
 ''' Algorithm! '''
 
 from pm4py.algo.discovery.footprints import algorithm as footprints_discovery
+
+
+
+######################## MODIFICA findCausalRelationships ****MR*** ##################################################
+
+'''
+Precedente funzione, sostituita con la funzione presente nel file yupiter _MR_
 def findCausalRelationships(net, im, fm):
   fp_net = footprints_discovery.apply(net, im, fm)
   return list(fp_net.get('sequence'))
+'''
 
+
+def findCausalRelationships(net):
+    dict_succ=find_successors(net)
+    result=[]
+    for key,item in dict_succ.items():
+        for s in item:
+            result.append((key.label,s.label))
+    return result
+
+
+def find_successors_of_transition(net, transition):
+    sources = {transition}
+    targets = set()
+    visited = set()
+    while sources:
+        source = sources.pop()
+        if not (type(source) is pm4py.objects.petri_net.obj.PetriNet.Transition and source.label is not None):
+            visited.add(source)
+        for arc in source.out_arcs:
+            if arc.target in visited:
+                continue
+            if type(arc.target) is pm4py.objects.petri_net.obj.PetriNet.Transition and arc.target.label is not None:
+                targets.add(arc.target)
+            else:
+                sources.add(arc.target)
+    return targets
+
+def find_successors(net):
+    return {transition: find_successors_of_transition(net, transition) for transition in net.transitions if transition.label is not None}
 
 # #Pick Aligned Trace
 
@@ -700,7 +738,9 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
   #gviz.render(filename="petri")
 
   #start_time_total = time.time()
-  cr = findCausalRelationships(net, initial_marking, final_marking)
+  #cr = findCausalRelationships(net, initial_marking, final_marking)
+  cr = findCausalRelationships(net)
+
   #if view:
    # print(cr)
   

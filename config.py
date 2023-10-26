@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Aug 10 09:51:11 2022
+Created on Wed Aug 10 09:51:11 2022 (3.10.6 ? )
 
 @author: ManouvanWijlen
 
@@ -17,8 +17,10 @@ def load():
     parser.add_argument('--attr_list', default=['bu', 'nrchanges', 'ttmotif', 'plant', 'matgroup', 'polines', 'vendor', 'item'])
     #data
     parser.add_argument('--data_dir', default="./datasets")
-    parser.add_argument('--csv_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd.csv")
-    parser.add_argument('--xes_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd_startend.xes")
+    #parser.add_argument('--csv_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd.csv")
+    parser.add_argument('--csv_name', default="testCsv.csv")
+    #parser.add_argument('--xes_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd_startend.xes")
+    parser.add_argument('--xes_name', default="testXes.xes")
     parser.add_argument('--net_name', default="dgcnn_log_sample_net_startend.pnml")
     parser.add_argument('--checkpoint_dir', default="./checkpoints")
     parser.add_argument('--dataset', default='p2p')

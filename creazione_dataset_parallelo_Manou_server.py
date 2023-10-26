@@ -43,7 +43,7 @@ Il file verrà salvato in una cartella nel Drive Google chiamata dataset che dev
 
 import networkx as nx
 import string
-file_name = "0"#"completeHelpdesk"
+file_name = "complete"#"completeHelpdesk"
 #CHANGED!!!
 file_id="0"
 
@@ -115,14 +115,14 @@ def create_graph():
                        attrib5 = float(line[5]),
                        ttmotif= float(line[6]),
                        polines=float(line[7]),
-                       nrchanges=float(line[8]),
-                       deltapodd=float(line[9]),
-                       bu=line[10],
-                       plant=line[11],
-                       item=line[12],
-                       vendor=line[13],
-                       matnrshort=line[14],
-                       target= float(line[15]), #added the target here!
+                       #nrchanges=float(line[8]),
+                       #deltapodd=float(line[9]),
+                       bu=line[8],
+                       plant=line[9],
+                       item=line[10],
+                       vendor=line[11],
+                       matnrshort=line[12],
+                       target= float(line[13]), #added the target here!
                        idn=ids[s] 
                        )
             s+=1
@@ -184,6 +184,8 @@ def create_graph():
 #NOT NEED IT
 #need something similar to map time value for the right node/event.
 #add the target to the complete.g file!
+
+### NEXT ACTIVITY _MR_ #######
 def define_target(graph,subgraph):    #qui toccherà giocarci quando vorremo estendere la caraterizzazione del nodo predetto in output 
   
     reverse=graph.reverse()                                                         # inverte le direzioni degli archi del grafo direzionato (completo)
@@ -215,7 +217,7 @@ Alla fine viene creato un file che contiene il nome delle varie tipologie di act
 Il file è salvato nel Drive google nella cartella dataset che deve essere creata precedentemente
 """
 
-import networkx as nx
+#import networkx as nx
 
 def create_sub_graph():
     
@@ -259,8 +261,8 @@ def create_sub_graph():
                               attrib5=graph.nodes[node]['attrib5'],
                               ttmotif=graph.nodes[node]['ttmotif'],
                               polines=graph.nodes[node]['polines'],
-                              nrchanges=graph.nodes[node]['nrchanges'],
-                              deltapodd=graph.nodes[node]['deltapodd'],
+                              #nrchanges=graph.nodes[node]['nrchanges'],
+                              #deltapodd=graph.nodes[node]['deltapodd'],
                               bu=graph.nodes[node]['bu'],
                               plant=graph.nodes[node]['plant'],
                               item=graph.nodes[node]['item'],
@@ -381,7 +383,7 @@ def draw(G):
 
 import torch
 import numpy as np
-import networkx as nx
+#import networkx as nx
 from torch_geometric.data import InMemoryDataset, Data
  
  
@@ -441,8 +443,8 @@ class TraceDataset(InMemoryDataset):
                            float(G.nodes[i]['attrib5']),
                            float(G.nodes[i]['ttmotif']),
                            float(G.nodes[i]['polines']),
-                           float(G.nodes[i]['nrchanges']),
-                           float(G.nodes[i]['deltapodd']),
+                           #float(G.nodes[i]['nrchanges']),
+                           #float(G.nodes[i]['deltapodd']),
                            *bur[G.nodes[i]['bu']],
                            *plantr[G.nodes[i]['plant']],
                            *itemr[G.nodes[i]['item']],
@@ -463,7 +465,8 @@ class TraceDataset(InMemoryDataset):
             print("a")
             print(x)
             """
-            adj = nx.to_scipy_sparse_matrix(G).tocoo()                            #prende la matrice di adiacenza del sottografo
+            adj = nx.to_scipy_sparse_array(G)                          #prende la matrice di adiacenza del sottografo
+            adj = adj.tocoo()
             row = torch.from_numpy(adj.row.astype(np.int64)).to(torch.long)
             col = torch.from_numpy(adj.col.astype(np.int64)).to(torch.long)
             edge_index = torch.stack([row, col], dim=0)    
