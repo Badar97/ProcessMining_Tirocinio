@@ -684,7 +684,7 @@ to_norm = {'e_v': 0, 'node1': 0, 'node2': 0, 'name_event': 0, 'name_track':0,
 
 # does the normalization and the encoding
 #bool var that must be true if cat_features are selected to be encoded
-cat_encoding = True
+cat_encoding = False
 for i in range(len(to_norm.values())):
   if list(to_norm.values())[i] == 2 and cat_encoding is False:
     cat_encoding = True
