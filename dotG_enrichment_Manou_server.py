@@ -60,12 +60,6 @@ def get_all_trace_attributes_from_log(log):
         all_attributes.remove(xes.DEFAULT_TRACEID_KEY)
     return all_attributes
 
-
-
-path_xes = './Input/xes/'+args.xes_name
-
-#import .xes file
-a = pm4py.read_xes(path_xes)
 # trace_attr = get_all_trace_attributes_from_log(a)
 # print('trace:' + str(trace_attr))
 # event_attr = get_all_event_attributes_from_log(a)
@@ -565,9 +559,12 @@ print_file.write('Start with extra own features...\n')
 print_file.flush()
 print_file.write('read data frame...\n')
 print_file.flush()
+
+############_____________MODIFICATA DA B___________#############
+"""
 targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,79)]),dtype={'Case ID': str},low_memory=False)
-#targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,16)]),dtype={'Case ID': str},low_memory=False) 
-targetframe=targetframe.drop(['Weekday','matgroup_4', 'matgroup_7', 'matgroup_others']+list(targetframe.filter(like='Weekday_').columns)+list(targetframe.filter(like='ACTIVITY_EN_').columns), axis=1)
+#targetframe=pd.read_csv(f"./{args.csv_name}",dtype={'Case ID': str},low_memory=False) 
+targetframe=targetframe.drop(['org:resource', 'lifecycle:transition', 'variant', 'variant-index', 'creator', 'Weekday','matgroup_4', 'matgroup_7', 'matgroup_others']+list(targetframe.filter(like='Weekday_').columns)+list(targetframe.filter(like='ACTIVITY_EN_').columns), axis=1)
 print_file.write('add bins for categories...\n')
 print_file.flush()
 ## Discretizzazione dei valori
@@ -587,6 +584,32 @@ targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#
 #targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
 idx=list(range(3,7))+list(range(10,len(targetframe.columns)))
 columns=list(np.array(targetframe.columns)[idx])
+"""
+
+def createTargetframe(csv_file):
+  targetframe = pd.read_csv(csv_file, usecols=[i for i in range(0, 84)], dtype={'Case ID': str}, low_memory=False)
+  columns_to_drop = ['org:resource', 'lifecycle:transition', 'variant', 'variant-index', 'creator', 'Weekday', 'matgroup_4', 'matgroup_7', 'matgroup_others'] + list(targetframe.filter(like='Weekday_').columns) + list(targetframe.filter(like='ACTIVITY_EN_').columns)
+  targetframe = targetframe.drop(columns_to_drop, axis=1)
+    
+  for c in ['bu_', 'plant_', 'item_', 'vendor_', 'MatnrShort_']:
+    targetframe['bins_{}'.format(c)] = targetframe.filter(like=c).idxmax(axis=1)
+    targetframe.drop(list(targetframe.filter(like=c).columns)[:-1], axis=1, inplace=True)
+
+  dtl = targetframe['Days too late']
+  targetframe.drop('Days too late', axis=1, inplace=True)
+  targetframe['Days too late'] = dtl
+  targetframe = targetframe.groupby('Case ID', sort=False, as_index=False).agg('max') 
+  idx = list(range(3, 7)) + list(range(10, len(targetframe.columns)))
+  columns = list(np.array(targetframe.columns)[idx])
+  return targetframe, columns
+
+path_csv = args.csv_name
+targetframe, columns = createTargetframe(path_csv)
+print_file.write('add bins for categories...\n')
+print_file.flush()
+print_file.write('groupby target frame...\n')
+print_file.flush()
+
 
 print_file.write('Set values, sizes and array for all features + target and add to g_dataframe...\n')
 print_file.flush()
@@ -597,7 +620,8 @@ for i in columns:
     print_file.write('add {} to g_dataframe...\n'.format(i))
     print_file.flush()
     arr=sum([[s] * n for s, n in zip(targetframe[i], sizes)], [])
-    if i=='Days too late':
+    if i==targetframe.columns[-1]: #ho messo -1 perchè 'Day too late' indica il target ed è presente nell'ultima colonna del dataframe
+    #if i=='Days too late':
         g_dataframe['target']=[np.nan]*len(g_dataframe)
         arr=pd.Series(arr)
         arr.index=idxss
@@ -673,18 +697,47 @@ targetframe=pd.DataFrame()
 #<HARDCODED> Adapt the dictionary to the set of attributes of the dataset
 
 #own p2plog
-to_norm = {'e_v': 0, 'node1': 0, 'node2': 0, 'name_event': 0, 'name_track':0,
-                    'finish': 0,
-                    'start': 0, 'norm_time': 1, 'trace_time': 1,
-                    'prev_event_time': 1, 'target':0}
+#to_norm = {'e_v': 0, 'node1': 0, 'node2': 0, 'name_event': 0, 'name_track':0, 
+           #'finish': 0, 'start': 0, 'norm_time': 1, 'trace_time': 1, 'prev_event_time': 1, 'target':0}
+
+############_____________MODIFICATA DA B___________############# versione di to_norm
+def create_norm_dict(dataset):
+    norm_dict = {}
+    # Define the structural features that should be set to 0
+    structural_features = ['e_v', 'node1', 'node2', 'name_event']
+
+    for column in dataset.columns:
+        if column in structural_features:
+            norm_dict[column] = 0  # Set to 0 for structural features
+        else:
+            # You can define your own logic here to determine whether a column is continuous (1) or categorical (2)
+            if dataset[column].dtype == 'object':
+                norm_dict[column] = 0  # Set to 2 for categorical features
+            else:
+                norm_dict[column] = 1  # Set to 1 for continuous features
+
+    return norm_dict
+
+# Example usage with your DataFrame "g_dataframe"
+# You should replace "g_dataframe" with your actual DataFrame
+to_norm = create_norm_dict(g_dataframe)
+print(to_norm)
+
+
+
+
 
 #why not onehot encode the activities??
 
 #</HARDCODED>
 
+
+
+
+
 # does the normalization and the encoding
 #bool var that must be true if cat_features are selected to be encoded
-cat_encoding = True
+cat_encoding = False
 for i in range(len(to_norm.values())):
   if list(to_norm.values())[i] == 2 and cat_encoding is False:
     cat_encoding = True
