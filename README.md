@@ -1,6 +1,6 @@
  # Guida d'utilizzo
  ### Tirocinio Process Mining a.a 2022/2023
- #### Ali Waqar - Romanelli
+ #### Badar Ali Waqar - Marco Romanelli
  
  
  ## Installazione Librerie
