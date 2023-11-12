@@ -70,9 +70,30 @@ args=config.load()
 #code to make petri net
 #import entire log
 #make petri net
-log_total=pm4py.read_xes('./Input/xes/'+args.xes_name)
 
-log_total_frame= pm4py.convert_to_dataframe(log_total)
+#path for .xes file
+log_file = './Input/xes/'+args.xes_name
+#need to have the petri net
+net_file = args.net_name
+#path for .csv file
+path_csv = args.csv_name
+# Import .xes file
+log_total=pm4py.read_xes(log_file)
+
+#log_total_frame= pm4py.convert_to_dataframe(log_total)
+
+#This function convert the .xes file to .csv file
+def convert_xes_to_csv(log, csv_name):
+  toCsv = pm4py.convert_to_dataframe(log) #convert the .xes to dataframe
+  toCsv = toCsv.rename(columns={'case:concept:name': 'Case ID', 'time:timestamp': 'Timestamp'})
+  toCsv.drop(['Activity'], errors='ignore', axis=1, inplace=True)
+  toCsv = toCsv.rename(columns={'concept:name': 'Activity'})
+  toCsv = toCsv.rename(columns=lambda x: x.replace('case:', ''))
+  column_sort = ['Case ID', 'Activity', 'Timestamp'] + [col for col in toCsv.columns if col not in ['Case ID', 'Activity', 'Timestamp']]
+  toCsv = toCsv[column_sort]
+  toCsv.to_csv(csv_name, index=False)
+
+convert_xes_to_csv(log_total, path_csv) 
 
 
 # #Inductive Miner Infrequent - Petri Net
@@ -101,6 +122,7 @@ places=net.places
 #         print(arc.source.name, arc.source.label)
 
 from pm4py.objects.petri_net.obj import PetriNet, Marking
+
 start = PetriNet.Transition("st", "START")
 end = PetriNet.Transition("end", "END")
 p_start=PetriNet.Place('p_start')
@@ -705,6 +727,8 @@ def saveCSV(path, aligned, model_moves, num):
     writer=csv.writer(f,delimiter=";")
     writer.writerow([num, aligned, model_moves ])
     f.close()
+ 
+
 
 
 # ##MAIN
@@ -720,9 +744,6 @@ import csv
 
 from pm4py.visualization.petri_net import visualizer as pn_visualizer
 
-log_file = './Input/xes/'+args.xes_name
-#need to have the petri net
-net_file = args.net_name
 
 def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=False):
   splits = log_path.split('/')
@@ -734,7 +755,7 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
 
 
   #gviz = pn_visualizer.apply(net, initial_marking, final_marking)
- # display.display(gviz)
+  #display.display(gviz)
   #gviz.render(filename="petri")
 
   #start_time_total = time.time()
@@ -887,11 +908,12 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
 
     saveGFile(V_new, W_new, "./Input/testgraph.g", time.time()-trace_start_time, sort_labels)
     saveGfinal(V_new, W_new, "./Input/g/{0}_instance_graphs.g".format(name), sort_labels)
+    
 
      
 
     #print('------------------------------------------------------------------')
-    
+  
     
 
 
@@ -900,8 +922,3 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
 
 
 BIG(net_file,log_file)
-
-
-
-
-
