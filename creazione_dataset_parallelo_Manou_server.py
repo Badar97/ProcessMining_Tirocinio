@@ -62,7 +62,7 @@ def create_graph():
             pass
         
         elif line[0]=="v":
-            ids.append(line[4])
+            ids.append(line[4]) #cosa vuole prendere di preciso qui? MR
             
     input = open(PATH+"/"+file_name+".g", "r")       #apro il file
     
@@ -122,8 +122,8 @@ def create_graph():
                        item=line[10],
                        vendor=line[11],
                        matnrshort=line[12],
-                       target= float(line[13]), #added the target here!
-                       idn=ids[s] 
+                       target= float(line[13]), #added the target here!     \\\Viene preso il dtl\\
+                       idn=ids[s] #concept:name - idname?
                        )
             s+=1
             # <\HARDCODED>
@@ -132,7 +132,9 @@ def create_graph():
     
     ListGraph.append(G.reverse()) #added this to also append the last graph!! because graph is only appended at the end.
     input.close()
-    
+    '''
+    La utilizzo solo per salvarmi tutti gli attributi categorici per fare il hoe finale?
+    '''
     #I DON'T THINK I NEED THIS PART, BECAUSE IT'S USED FOR OUTPUT
     for G in ListGraph:                                                             #crea lista attributi nodi (univoci)--> serve per qualunque attributo categorico
         for node in G.nodes:
@@ -235,12 +237,21 @@ def create_sub_graph():
           #si entra solo dopo i primi due nodi perchè sempre in input (mai predetti)
             if len(SubGraph.nodes())>1: #changed min prefix length       
                 #changed the next line                                    #controllo se il sottgrafo che si sta creando ha almeno due nodi all'interno
+
+
+##INSERIMENTO DEL TARGET FEATURE //DTL
+
+##INSERIMENTO DEL ACTIVITY DA PREDIRRE
+
+                target_t1 = graph.nodes[node]['target']
                 SubGraph.graph['target_std']= graph.nodes[node]['target'] #put the target value there for the correct node.     #assegna come target_std al sottografo il nodo corrente
                 nodevar=node
                 #if SubGraph.graph['target_std'] not in target_std:                #inserisce l'activity solo se non è già inserita nella lista target_std
                  #   target_std.append(SubGraph.graph['target_std'])
                 # *********************************************
                 #NOT NEEDED! IT SHOULDN'T USE THIS IN TRAINING
+
+                target_par_tmp = define_target(graph.copy(),SubGraph)
                 SubGraph.graph['target_par']= define_target(graph.copy(),SubGraph)  #assegna come target_par al sottografo il nodo corrente          
                 
                 #CHANGED!!!
@@ -403,7 +414,7 @@ class TraceDataset(InMemoryDataset):
  
  
     def process(self):
-        listGraph=create_sub_graph()    #a subgraph for each trace?                                           #ritorna lista dei sottografi
+        listGraph=create_sub_graph()    #a subgraph for each trace?          #vedi commento 366                                 #ritorna lista dei sottografi
         
         data_list = []
         attr = dictattr(PATH='./dataset',file="attributi.txt")
@@ -480,6 +491,8 @@ class TraceDataset(InMemoryDataset):
             caseid=G.graph['caseid']
             #NOT NEEDED
             y_par = torch.tensor([target_par[G.graph['target_par']]])             #assegna il valore numerico all'attività da predirre per quel sottografo secondo logica par
+
+            #print(y_par)
  
             #x=tensore attributi nodi sottografo corrente, 
             #edge_index=descrive collegamenti tra nodi, 
@@ -487,12 +500,21 @@ class TraceDataset(InMemoryDataset):
             #y_par=tensore attività parallele predicibili (etichetta)
             
             #MIGHT NEED TO REMOVE Y_PAR HERE AS WELL
-            data = Data(x=x, edge_index=edge_index, y=y_std,y_par=y_par,idc=caseid)          #inserisce queste informazioni nella struttura dati utilizzata da pytorch_geometric per gli elementi del dataset
+            #data = Data(x=x, edge_index=edge_index, y=y_std,y_par=y_par,idc=caseid)          #inserisce queste informazioni nella struttura dati utilizzata da pytorch_geometric per gli elementi del dataset
+            data = Data(x=x, edge_index=edge_index, y=y_par,idc=caseid)          #inserisce queste informazioni nella struttura dati utilizzata da pytorch_geometric per gli elementi del dataset
+
             data_list.append(data)                                                #crea una lista contenente gli elementi del dataset
  
         # print("oh")
         # print(data_list)
         data, slices = self.collate(data_list)
+        '''
+        
+        print(data.y)
+        print('-------------------------------------')
+        print(data.x)
+        
+        '''
         torch.save((data, slices), self.processed_paths[0])                       #salva il dataset
 
 """Bloco di codice che monta il drive all'interno del filesystem di colab e avvia la creazione del dataset richiamando il costruttore del dataset"""

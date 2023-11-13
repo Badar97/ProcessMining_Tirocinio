@@ -76,7 +76,9 @@ class SortPool(torch.nn.Module):
         self.conv1d = Conv1d(hidden, 32, kernel_size)  # conv1d layer di convoluzione 1
         self.lin1 = Linear(32 * (self.k - kernel_size + 1),
                            hidden)  # linear layer che applica una trasformazione lineare
-        self.lin2 = Linear(hidden, 1) #i think this is the last layer so change unit to 1! #dataset.num_classes)
+        #MOD MR
+        self.lin2 = Linear(hidden, 6)  # Per classificazione multiclasse
+        #self.lin2 = Linear(hidden, 1) #i think this is the last layer so change unit to 1! #dataset.num_classes)
 
     def reset_parameters(self):
         self.conv1.reset_parameters()
@@ -100,7 +102,10 @@ class SortPool(torch.nn.Module):
         x = F.relu(self.lin1(x))
         x = F.dropout(x, p=dropout, training=self.training)
         x = self.lin2(x)
-        return x #shouldn't do activation for regression. original: F.log_softmax(x, dim=-1)
+
+        #MOD MR
+        return F.log_softmax(x, dim=1)  # Per classificazione multiclasse
+        #return x #shouldn't do activation for regression. original: F.log_softmax(x, dim=-1)
 
     def __repr__(self):
         return self.__class__.__name__
@@ -232,10 +237,12 @@ def printcfile_train(cmt, epoch):
 
 
 import torch
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 import torch_geometric.datasets
 from torch_geometric import utils
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')  # Usa il backend che non richiede una GUI.
 import itertools
 import numpy as np
 
@@ -335,7 +342,14 @@ idsavefile.close()
 model = SortPool(dataset=G, num_layers=num_ly, hidden=hidden) #hidden was batchsize!  # definizione del modello della rete
 optimizer = torch.optim.Adam(model.parameters(),
                              lr=lr)  # definizione della variabile dove vengono salvati i parametri di ottimizzazione della rete
-criterion = torch.nn.L1Loss()  #changed to mae # definizione del criterio per l'allenamento della rete
+
+# MOD MR
+criterion = torch.nn.NLLLoss()
+
+#criterion = torch.nn.L1Loss()  #changed to mae # definizione del criterio per l'allenamento della rete
+
+'''
+vecchia versione con alcune modifiche:
 
 
 def train():  # funzione di addestramento della rete
@@ -359,7 +373,10 @@ def train():  # funzione di addestramento della rete
         out = model(data)  # risultati di predizione della rete
         #changed!!
         act=data.y.view(data.y.shape[0],1)
-        loss = criterion(out, act)#data.y)  # calcola la loss
+
+        MOD MR nella funzione di loss veniva passato out e act
+        #
+        loss = criterion(out, data.y)#data.y)  # calcola la loss
         pred = out #are 64 predictions, as this is the batch size as it's just a number and not a category. it's still a tensor in this way... #out.argmax(
             #dim=1)  # calcola la predizione della rete prendendo quella con la probabilità maggiore. Restituisce il valore progressivo dell'attività predetta
         #torch.cat : Concatenates the given sequence of seq tensors in the given dimension
@@ -387,6 +404,45 @@ def train():  # funzione di addestramento della rete
     #     cmt[int(tl), int(pl)] = cmt[int(tl), int(pl)] + 1
         
     return running_loss,stacked#, running_corrects#, cmt
+
+
+
+
+'''
+
+##nuova versione MOD MR
+def train():
+    model.train(True)
+    running_loss = 0.0
+    all_preds = torch.tensor([])  # predictions
+    ystack_std = torch.tensor([])  # actuals
+
+    for data in train_loader:
+        optimizer.zero_grad(set_to_none=True)
+        out = model(data)
+        loss = criterion(out, data.y)  # Non modificare data.y con view()
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item() * data.num_graphs
+
+        # Usa argmax per ottenere le classi predette dall'output del modello
+        _, preds = torch.max(out, 1)
+        all_preds = torch.cat((all_preds, preds.float()), dim=0)  # Assicurati che sia dello stesso tipo
+        ystack_std = torch.cat((ystack_std, data.y.float()), dim=0)  # Assicurati che sia dello stesso tipo
+
+    # Ora all_preds e ystack_std hanno la stessa lunghezza e possono essere impilati
+    stacked = torch.stack((ystack_std, all_preds), dim=1)
+
+    return running_loss, stacked
+
+
+
+'''
+
+                                                versione precedente
+
+
+
 
 
 def test(loader):  # funzione per il test della rete
@@ -418,6 +474,42 @@ def test(loader):  # funzione per il test della rete
     #     cmt[int(tl), int(pl)] = cmt[int(tl), int(pl)] + 1
         
     return running_loss,stacked#, running_corrects #, cmt
+
+'''
+
+
+#   ********************************************* MOD MR **************************
+# 
+# 
+# 
+# 
+# 
+# 
+# #
+def test(loader):
+    model.eval()  # Imposta il modello in modalità valutazione
+    running_loss = 0.0
+    all_preds = torch.tensor([])
+    ystack_std = torch.tensor([])
+
+    with torch.no_grad():  # Disattiva il calcolo dei gradienti per risparmiare memoria e calcoli
+        for data in loader:
+            out = model(data)
+            loss = criterion(out, data.y)  # Assicurati che data.y sia un vettore 1D con le etichette corrette
+            running_loss += loss.item() * data.num_graphs
+
+            # Usa argmax per ottenere le classi predette dall'output del modello
+            _, preds = torch.max(out, 1)
+            all_preds = torch.cat((all_preds, preds.float()), dim=0)
+            ystack_std = torch.cat((ystack_std, data.y.float()), dim=0)
+
+    # Calcola la matrice di confusione o altre metriche di valutazione qui se necessario
+
+    return running_loss, torch.stack((ystack_std, all_preds), dim=1)
+
+'''
+
+vecchia versione
 
 
 def plot_confusion_matrix(cm, title, normalize=False,
@@ -455,6 +547,69 @@ def plot_confusion_matrix(cm, title, normalize=False,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
+
+'''
+
+#   ************************************* MOD MR ***********************
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# #
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import itertools
+
+def plot_confusion_matrix(y_true, y_pred, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+    """
+    Questa funzione stampa e visualizza la matrice di confusione.
+    La normalizzazione può essere applicata impostando `normalize=True`.
+    """
+    # Calcola la matrice di confusione
+    cm = confusion_matrix(y_true, y_pred)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+
+# Leggi le classi dal file
+with open('./dataset/target_par.txt', 'r') as file:
+    classes = file.read().splitlines()
+
+# Assumi che y_true e y_pred siano le liste o tensori delle etichette reali e predette
+# y_true = [...]
+# y_pred = [...]
+
+# Chiama la funzione plot_confusion_matrix
+#plot_confusion_matrix(y_true, y_pred, classes=classes, normalize=False)
 
 
 def resume_from_checkpoint(
@@ -533,6 +688,41 @@ for epoch in range(start_epoch, start_epoch + delta_epoch): #0-100  # ciclo dell
         train_loader.dataset))  # popola delle liste che contengono i valori di loss e accuracy della rete peril train e per il test
     lossTe.append(test_loss / len(valid_loader.dataset)) #forgot to change this ! 
     t_ende=time.time()
+
+
+
+    #   *****************************************   MOD MR  ************************************
+
+    
+    # Calcola la matrice di confusione per l'epoca corrente
+    y_true_test = outcome_test[:, 0].tolist()
+    y_pred_test = outcome_test[:, 1].tolist()
+    cmt_test = confusion_matrix(y_true_test, y_pred_test)
+
+    # Plot della matrice di confusione
+    plt.figure(figsize=(15, 15))
+    plot_confusion_matrix(y_true_test, y_pred_test, classes=classes, title="Confusion matrix TEST epoch : " + str(epoch))
+    plt.savefig(args.checkpoint_dir + "/Immagini/cm_epoch/test_epoch_" + str(epoch) + ".png")
+    plt.close()
+
+    # Calcola la matrice di confusione per l'epoca corrente (train)
+    y_true_train = outcome_train[:, 0].tolist()
+    y_pred_train = outcome_train[:, 1].tolist()
+    cmt_train = confusion_matrix(y_true_train, y_pred_train)
+
+    # Plot della matrice di confusione
+    plt.figure(figsize=(15, 15))
+    plot_confusion_matrix(y_true_train, y_pred_train, classes=classes, title="Confusion matrix TEST epoch : " + str(epoch))
+    plt.savefig(args.checkpoint_dir + "/Immagini/cm_epoch/train_epoch_" + str(epoch) + ".png")
+    plt.close()
+    
+
+
+    #   *************************************************************************************
+
+
+
+
     # accTr.append(train_acc / len(train_loader.dataset))
     # accTe.append(test_acc / len(test_loader.dataset))
 
@@ -574,6 +764,20 @@ for epoch in range(start_epoch, start_epoch + delta_epoch): #0-100  # ciclo dell
             best_loss_test = test_loss
             best_outcome_test=outcome_test
             triggertimes=0
+
+            #   *********************************   MOD MR  ******************************************** 
+            # 
+            # 
+            # 
+            # #
+
+            # Salva la matrice di confusione per il miglior test
+            plt.figure(figsize=(15, 15))
+            plot_confusion_matrix(y_true_test, y_pred_test, classes=classes, title="Confusion matrix BEST TEST epoch : " + str(epoch))
+            plt.savefig(args.checkpoint_dir + "/Immagini/best_test/cm_test_epoch_" + str(epoch) + ".png")
+            plt.close()
+
+            #   *******************************************************************************************
         
         else:
             triggertimes+=1
@@ -599,7 +803,19 @@ for epoch in range(start_epoch, start_epoch + delta_epoch): #0-100  # ciclo dell
             torch.save(state, args.checkpoint_dir+'/best_train/best_model.pth.tar')  # salva info utili sulla best epoch
             best_loss_train = train_loss
             best_outcome_train=outcome_train
-         
+
+            #   *********************************   MOD MR  ******************************************** 
+            # 
+            # 
+            # 
+            # #
+
+            # Salva la matrice di confusione per il miglior train
+            plt.figure(figsize=(15, 15))
+            plot_confusion_matrix(y_true_train, y_pred_train, classes=classes, title="Confusion matrix BEST TRAIN epoch : " + str(epoch))
+            plt.savefig(args.checkpoint_dir + "/Immagini/best_train/cm_train_epoch_" + str(epoch) + ".png")
+            plt.close()
+            #   **********************************************************************************
         #early stopping 
         if triggertimes>=patience:
             print('Early stopping!\nBest loss = {}'.format(best_loss_test))
@@ -645,6 +861,10 @@ model_test= SortPool(dataset=G, num_layers=num_ly, hidden=hidden)
 checkpoint=torch.load(args.checkpoint_dir+'/best_test/best_model.pth.tar')
 model_test.load_state_dict(checkpoint['state_dict'])
 
+
+
+
+'''
 def test_results(loader):  # funzione per il test della rete
     with torch.no_grad():
         model_test.train(False)  # passando il false dico al programma di non addestrare il modello
@@ -680,6 +900,48 @@ def test_results(loader):  # funzione per il test della rete
     #     cmt[int(tl), int(pl)] = cmt[int(tl), int(pl)] + 1
         
     return stacked#running_loss,stacked#, running_corrects #, cmt
+
+    
+'''
+
+
+
+
+#   ********************************** MOD MR ******************************
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# #
+
+
+def test_results(loader):
+    model_test.eval()  # Imposta il modello in modalità valutazione
+    all_preds = []
+    ystack_std = []
+
+    with torch.no_grad():  # Disattiva il calcolo dei gradienti per risparmiare memoria e calcoli
+        for data in loader:
+            out = model_test(data)  # risultati di predizione della rete
+            loss = criterion(out, data.y)  # Calcola la loss usando le etichette originali non ridimensionate
+            
+            # Usa argmax per ottenere le classi predette dall'output del modello
+            _, preds = torch.max(out, 1)
+            all_preds.append(preds)
+            ystack_std.append(data.y)
+
+    # Concatena tutti i batch insieme
+    all_preds = torch.cat(all_preds, dim=0)
+    ystack_std = torch.cat(ystack_std, dim=0)
+
+    # Crea un tensore di coppie contenenti la predizione della rete e il valore esatto
+    stacked = torch.stack((ystack_std, all_preds), dim=1)
+    
+    return stacked
 
 t1=time.time()
 outfile.write('do predictions...\n')
