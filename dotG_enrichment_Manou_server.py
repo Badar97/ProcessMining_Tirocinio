@@ -60,6 +60,12 @@ def get_all_trace_attributes_from_log(log):
         all_attributes.remove(xes.DEFAULT_TRACEID_KEY)
     return all_attributes
 
+
+
+path_xes = './Input/xes/'+args.xes_name
+
+#import .xes file
+a = pm4py.read_xes(path_xes)
 # trace_attr = get_all_trace_attributes_from_log(a)
 # print('trace:' + str(trace_attr))
 # event_attr = get_all_event_attributes_from_log(a)
@@ -146,6 +152,17 @@ def v_case(wfile, word, index, log):
           for elem in lista_param_tracce:
             params_tracks += str(log[index].attributes[elem]) + " "
           params_tracks = params_tracks.strip()
+          # ******************************************************************************************
+          # 
+          # # MOD MR 
+          # ho aggiunto il replace in quanto con il file di log PermitLog_SE il concept:name ha degli spazi e crea problemi quando va a leggere il merged.g
+          #
+          # df = pd.read_csv(path_read, sep=" ", names=names2, dtype={'name_track':str} )
+          # v 2  Starttrip 2016-10-0423:59:59.999000+02:00 travel permit 76455 
+          # nell'esempio di sopra con read_csv divide in 3 colonne (sbagliato) travel permit 76455 #
+          # 
+          # #
+          params_tracks = params_tracks.replace(' ', '_')
           params_elems = ""
           for elem in lista_param_eventi:
             try:
@@ -236,15 +253,33 @@ with open(path_w + 'merged.g', 'w') as outfile:
         outfile.write('')
         #outfile.close()
 
-"""**temporal_and_ohe**.py"""
 
-#<HARDCODED> (vedi sotto)
-#this file add the temporal feature to .g file that contains amount req and time stamp (the 4 .g partition merged)
-#the temporal feature are:
-    #start time, 
-    #norm time, 
-    #prev event time
-    #trace time
+
+
+
+
+
+
+
+
+
+#     ************************************************************************
+#  
+#                 END CREATE .G FILE
+# 
+#                 START temporal_and_ohe**.py
+# 
+#                 ADD A TEMPORAL FEATURES:
+# 
+#                 #start time, 
+#                 #norm time, 
+#                 #prev event time,
+#                 #trace time                
+# 
+# 
+#     ************************************************************************
+
+
 
 import pandas as pd
 import numpy as np
@@ -292,16 +327,16 @@ for i in range(len(names2)):
 
 #<HARDCODED> sui nomi timestamp e REG_DATE *****ANDREA****
 
-df = pd.read_csv(path_read, sep=" ", names=names2, dtype={'name_track':str} ) #accede alle variabili lista_param_eventi e lista_param_tracce dello script add_info_g_file.py
+df = pd.read_csv(path_read, sep=" ", names=names2, dtype={'name_track':str} ) #accede alle variabili lista_param_eventi e lista_param_tracce dello script add_info_g_file.py ////////////// legge il .g file prendendo solo le colonne presenti nella variabile names2
 
 #until here it's okay!
 df.timestamp = df.timestamp.apply(lambda x: str(x)[:18])
 
 #df['timestamp'] = pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S', errors='coerce')
-df['timestamp']=pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S') #add utc to be sure (,utc=True)
+df['timestamp']=pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S', utc=True) #add utc to be sure (,utc=True)
 #df['timestamp']=pd.to_datetime(df['timestamp'], format='%Y-%m-%d%H:%M:%S', utc=True)
 
-tmp=df.timestamp
+tmp=df.timestamp  #Salvo in una variabile di appoggio tutti i timestamp per inserirli in una nuova colonna 'finish'
 df['finish']=tmp
 df.drop(['timestamp'], axis=1, inplace = True)
 
@@ -398,7 +433,7 @@ print_file=open('./log.txt','w')
 print_file.write('Start with g_dataframe...\n')
 print_file.flush()
 
-g_dataframe=pd.DataFrame(columns=list(df.columns))
+g_dataframe=pd.DataFrame(columns=list(df.columns))  #viene creato il g_dataframe con stesso numero/nome delle colonne df
 g_dataframe.loc[0]=np.array(np.nan*len(g_dataframe.columns))
 g_dataframe=pd.concat((g_dataframe,df),ignore_index=True)
 g_dataframe['e_v']=g_dataframe['e_v'].fillna('')
@@ -410,7 +445,7 @@ df_shift.loc[1]=np.array(np.nan*len(df_shift.columns))
 df_shift=pd.concat((df_shift,df),ignore_index=True)
 df_shift['e_v']=df_shift['e_v'].fillna('')
 df_shift=df_shift[:-1]
-g_dataframe['start']=df_shift['finish'].copy()
+g_dataframe['start']=df_shift['finish'].copy()  #non è spiegato, presumo che viene fatto per traslare verso il basso la colonna timestamp originale e successivamente per valutare se prendere il valore della stessa riga del timestamp o eventualmente quella precedente
 g_dataframe['start']=g_dataframe.apply(lambda x: x['finish'] if x['node1'] == 1 else x['start'], axis=1)
 
 #changed!!
@@ -451,6 +486,13 @@ print_file.write('Start with feature engineering...\n')
 print_file.write('norm_time...\n')
 print_file.flush()
 
+'''
+# Calcola la colonna 'norm_time' in base al giorno della settimana e all'ora
+
+#Infine, dividiamo il tempo totale in minuti per 10080, che è il numero totale di minuti in una settimana (7 giorni * 24 ore * 60 minuti).
+#Questa divisione normalizza il tempo in modo che il risultato sia compreso tra 0 (inizio della settimana) e 1 (fine della settimana)
+
+'''
 g_dataframe['norm_time']=((g_dataframe['finish'].dt.dayofweek*24*60)+((g_dataframe['finish'].dt.hour*60) + g_dataframe['finish'].dt.minute))/10080
 
 #the base column will be normalized 
@@ -560,79 +602,185 @@ print_file.flush()
 print_file.write('read data frame...\n')
 print_file.flush()
 
-############_____________MODIFICATA DA B___________#############
-"""
-targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,79)]),dtype={'Case ID': str},low_memory=False)
-#targetframe=pd.read_csv(f"./{args.csv_name}",dtype={'Case ID': str},low_memory=False) 
-targetframe=targetframe.drop(['org:resource', 'lifecycle:transition', 'variant', 'variant-index', 'creator', 'Weekday','matgroup_4', 'matgroup_7', 'matgroup_others']+list(targetframe.filter(like='Weekday_').columns)+list(targetframe.filter(like='ACTIVITY_EN_').columns), axis=1)
-print_file.write('add bins for categories...\n')
-print_file.flush()
-## Discretizzazione dei valori
 
-for c in ['bu_','plant_', 'item_', 'vendor_','MatnrShort_']:
-  targetframe['bins_{}'.format(c)]=targetframe.filter(like=c).idxmax(axis=1) 
-  targetframe.drop(list(targetframe.filter(like=c).columns)[:-1],axis=1,inplace=True)
 
-dtl=targetframe['Days too late']
-targetframe.drop('Days too late',axis=1,inplace=True)
-targetframe['Days too late']=dtl
+# **********************************************************************************
+#    
+# 
+# 
+# 
+# 
+# 
+# 
+#     QUESTO TARGETFRAME NON LO UTILIZZO IN QUANTO NON FACCIO REGRESSIONE E NON HO BISOGNO DI CALCOLARMI IL TARGET CON IL DAYS TO LATE.
+#     MOD MR 
+# 
+# 
+# 
+# 
+# 
+# 
+# # *********************************************************************************************
 
-print_file.write('groupby target frame...\n')
-print_file.flush()
-# targetframe=targetframe.groupby('caseID_hash',sort=False,as_index=False)['Days too late'] #.agg('max')
-targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
-#targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
-idx=list(range(3,7))+list(range(10,len(targetframe.columns)))
-columns=list(np.array(targetframe.columns)[idx])
-"""
+targetframe=pd.read_csv(f"./{args.csv_name}",low_memory=False)
+col_name = 'Case ID'
+if col_name in targetframe.columns:
+    targetframe[col_name] = targetframe[col_name].astype(str)
+else:
+    print(f"La colonna {col_name} non esiste.")
 
-def createTargetframe(csv_file):
-  targetframe = pd.read_csv(csv_file, usecols=[i for i in range(0, 84)], dtype={'Case ID': str}, low_memory=False)
-  columns_to_drop = ['org:resource', 'lifecycle:transition', 'variant', 'variant-index', 'creator', 'Weekday', 'matgroup_4', 'matgroup_7', 'matgroup_others'] + list(targetframe.filter(like='Weekday_').columns) + list(targetframe.filter(like='ACTIVITY_EN_').columns)
-  targetframe = targetframe.drop(columns_to_drop, axis=1)
-    
-  for c in ['bu_', 'plant_', 'item_', 'vendor_', 'MatnrShort_']:
-    targetframe['bins_{}'.format(c)] = targetframe.filter(like=c).idxmax(axis=1)
-    targetframe.drop(list(targetframe.filter(like=c).columns)[:-1], axis=1, inplace=True)
 
-  dtl = targetframe['Days too late']
-  targetframe.drop('Days too late', axis=1, inplace=True)
-  targetframe['Days too late'] = dtl
-  targetframe = targetframe.groupby('Case ID', sort=False, as_index=False).agg('max') 
-  idx = list(range(3, 7)) + list(range(10, len(targetframe.columns)))
-  columns = list(np.array(targetframe.columns)[idx])
-  return targetframe, columns
 
-path_csv = args.csv_name
-targetframe, columns = createTargetframe(path_csv)
-print_file.write('add bins for categories...\n')
-print_file.flush()
-print_file.write('groupby target frame...\n')
-print_file.flush()
+
+# ************************************************************************************
+# 
+# 
+# 
+#                 # MOD MR
+#                 # Parametrizzo tutte le colonne  
+# 
+# 
+# 
+# 
+# 
+# #
+
+
+from GUI import SimpleGui as SG
+
+clm=targetframe.columns.values
+
+#'Case ID' - Activity - Complete Timestamp
+#Attributi obbligatori da usare
+attribute = ['Case ID', 'Activity', 'Timestamp', 'Variant', 'Variant Index']
+
+# Crea una lista delle colonne da rimuovere
+columns_to_remove = [col for col in targetframe.columns if any(attr in col for attr in attribute)]
+
+# Calcola la differenza tra le colonne originali e quelle da rimuovere
+selected_columns = [col for col in targetframe.columns if col not in columns_to_remove]
+
+clm = targetframe.columns.values
+clm = np.sort(clm)
+
+# Selezionare le colonne interessate
+selected_columns = SG(sorted(selected_columns))
+
+
+
+'''
+
+
+# Lista dei prefissi delle colonne da considerare
+prefixes = ['bu_', 'plant_', 'item_', 'vendor_', 'MatnrShort_']
+
+# Filtrare le colonne con i prefissi
+filtered_columns = [col for col in targetframe.columns if any(col.startswith(prefix) for prefix in prefixes)]
+
+# Aggiungere colonne al g_dataframe
+for col in filtered_columns:
+    bins_col_name = f'bins_{col}'
+    targetframe[bins_col_name] = targetframe[col].idxmax(axis=1)
+    targetframe.drop(list(targetframe.filter(like=col).columns)[:-1], axis=1, inplace=True)
+
+# Spostare 'Days too late' in ultima posizione
+dtl = targetframe['Days too late']
+targetframe.drop('Days too late', axis=1, inplace=True)
+targetframe['Days too late'] = dtl
+
+'''
+
+# Raggruppare per 'Case ID' e calcolare il massimo
+#targetframe = targetframe.groupby('Case ID', sort=False, as_index=False).agg('max')
+
 
 
 print_file.write('Set values, sizes and array for all features + target and add to g_dataframe...\n')
 print_file.flush()
 sizes=np.array(g_dataframe.groupby('name_track',sort=False,as_index=False).size()['size'])
-idxss=list(np.where(~g_dataframe['name_track'].isnull()))[0]
 
-for i in columns:
-    print_file.write('add {} to g_dataframe...\n'.format(i))
+idxss=list(np.where(~g_dataframe['name_track'].isnull()))[0] #Trova gli indici delle righe in cui la colonna 'name_track' di g_dataframe non è nulla.
+
+
+
+# Set values, sizes, and array per tutte le colonne selezionate
+for i in selected_columns:
+    print_file.write(f'Aggiungi {i} a g_dataframe...\n')
     print_file.flush()
-    arr=sum([[s] * n for s, n in zip(targetframe[i], sizes)], [])
-    if i==targetframe.columns[-1]: #ho messo -1 perchè 'Day too late' indica il target ed è presente nell'ultima colonna del dataframe
-    #if i=='Days too late':
-        g_dataframe['target']=[np.nan]*len(g_dataframe)
-        arr=pd.Series(arr)
-        arr.index=idxss
-        g_dataframe['target']=arr
-    else:
-        g_tmp = targetframe[i]
-        g_dataframe[i]=[np.nan]*len(g_dataframe)
-        arr=pd.Series(arr)
-        arr.index=idxss
-        g_dataframe[i]=arr
+    arr = sum([[s] * n for s, n in zip(targetframe[i], sizes)], [])
+   
+    g_tmp = targetframe[i]
+    g_dataframe[i] = [np.nan] * len(g_dataframe)
+    arr = pd.Series(arr)
+    arr.index = idxss
+    g_dataframe[i] = arr
+
+
+
+
+# targetframe=pd.read_csv(f"./{args.csv_name}", usecols=([i for i in range(0,79)]),dtype={'Case ID': str},low_memory=False)
+# targetframe=targetframe.drop(['Weekday','matgroup_4', 'matgroup_7', 'matgroup_others']+list(targetframe.filter(like='Weekday_').columns)+list(targetframe.filter(like='ACTIVITY_EN_').columns), axis=1)
+# print_file.write('add bins for categories...\n')
+# print_file.flush()
+# ## Discretizzazione dei valori
+
+# for c in ['bu_','plant_', 'item_', 'vendor_','MatnrShort_']:
+#   targetframe['bins_{}'.format(c)]=targetframe.filter(like=c).idxmax(axis=1) 
+#   targetframe.drop(list(targetframe.filter(like=c).columns)[:-1],axis=1,inplace=True)
+
+# dtl=targetframe['Days too late']
+# targetframe.drop('Days too late',axis=1,inplace=True)
+# targetframe['Days too late']=dtl  #viene fatto per inserire la colonna dtl come ultima posizione
+
+# print_file.write('groupby target frame...\n')
+# print_file.flush()
+# # targetframe=targetframe.groupby('caseID_hash',sort=False,as_index=False)['Days too late'] #.agg('max')
+# targetframe=targetframe.groupby('Case ID',sort=False,as_index=False).agg('max')#['Days too late'] #.agg('max')
+# idx=list(range(3,7))+list(range(10,len(targetframe.columns)))
+# columns=list(np.array(targetframe.columns)[idx])
+
+# print_file.write('Set values, sizes and array for all features + target and add to g_dataframe...\n')
+# print_file.flush()
+# sizes=np.array(g_dataframe.groupby('name_track',sort=False,as_index=False).size()['size'])
+# idxss=list(np.where(~g_dataframe['name_track'].isnull()))[0] #Trova gli indici delle righe in cui la colonna 'name_track' di g_dataframe non è nulla.
+
+# for i in columns:
+#     print_file.write('add {} to g_dataframe...\n'.format(i))
+#     print_file.flush()
+#     arr=sum([[s] * n for s, n in zip(targetframe[i], sizes)], [])
+#     if i=='Days too late':
+#         g_dataframe['target']=[np.nan]*len(g_dataframe)
+#         arr=pd.Series(arr)
+#         arr.index=idxss
+#         g_dataframe['target']=arr
+#     else:
+#         g_tmp = targetframe[i]
+#         g_dataframe[i]=[np.nan]*len(g_dataframe)
+#         arr=pd.Series(arr)
+#         arr.index=idxss
+#         g_dataframe[i]=arr
         
+
+
+#
+# 
+# 
+# 
+#     PARTE DI BLOCCO COMMENTATA FINO A QUI
+# 
+# 
+# 
+# 
+# MOD MR
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# # ************************************************************
 
 
 # values=targetframe.agg('max')['Days too late']
@@ -653,9 +801,9 @@ for i in columns:
 # conditions=[(g_dataframe['name_track']==i) for  i in targetframe['caseID_hash']]
 # values=targetframe['Days too late']
 #changed 
-del targetframe
+#del targetframe
 gc.collect()
-targetframe=pd.DataFrame()
+#targetframe=pd.DataFrame()
 
 
 # g_dataframe['target']=np.select(conditions,values)
@@ -697,43 +845,23 @@ targetframe=pd.DataFrame()
 #<HARDCODED> Adapt the dictionary to the set of attributes of the dataset
 
 #own p2plog
-#to_norm = {'e_v': 0, 'node1': 0, 'node2': 0, 'name_event': 0, 'name_track':0, 
-           #'finish': 0, 'start': 0, 'norm_time': 1, 'trace_time': 1, 'prev_event_time': 1, 'target':0}
-
-############_____________MODIFICATA DA B___________############# versione di to_norm
-def create_norm_dict(dataset):
-    norm_dict = {}
-    # Define the structural features that should be set to 0
-    structural_features = ['e_v', 'node1', 'node2', 'name_event']
-
-    for column in dataset.columns:
-        if column in structural_features:
-            norm_dict[column] = 0  # Set to 0 for structural features
-        else:
-            # You can define your own logic here to determine whether a column is continuous (1) or categorical (2)
-            if dataset[column].dtype == 'object':
-                norm_dict[column] = 0  # Set to 2 for categorical features
-            else:
-                norm_dict[column] = 1  # Set to 1 for continuous features
-
-    return norm_dict
-
-# Example usage with your DataFrame "g_dataframe"
-# You should replace "g_dataframe" with your actual DataFrame
-to_norm = create_norm_dict(g_dataframe)
-print(to_norm)
 
 
 
+'''
 
+In base a cosa imposto 0 1 2 ?
+come posso gestirlo?
+
+'''
+to_norm = {'e_v': 0, 'node1': 0, 'node2': 0, 'name_event': 0, 'name_track':0,
+                    'finish': 0,
+                    'start': 0, 'norm_time': 1, 'trace_time': 1,
+                    'prev_event_time': 1, 'target':0}
 
 #why not onehot encode the activities??
 
 #</HARDCODED>
-
-
-
-
 
 # does the normalization and the encoding
 #bool var that must be true if cat_features are selected to be encoded
@@ -744,7 +872,7 @@ for i in range(len(to_norm.values())):
 
 print_file.write('Start with normalizing andreas features...\n')
 print_file.flush()
-for i in ['norm_time','trace_time','prev_event_time']:
+for i in ['norm_time','trace_time','prev_event_time']:  # Normalizzazione delle feature norm_time - trace_time - prev_event_time
 
     g_dataframe[i] = g_dataframe[i].div(g_dataframe[i].max()).round(15)
 
@@ -884,3 +1012,22 @@ w.writelines(tmp)
 w.close()
 
 
+
+
+def get_gDataFrame():
+  g_dataframe_tmp = g_dataframe.iloc[:, 4:-1]  # Seleziona tutte le righe (:), dalla terza colonna in poi (2:)
+  return g_dataframe_tmp
+
+
+'''
+Esempio di cosa restituisce get_gDataFrame senza nessuna colonna selezionata dall'utente:
+
+           norm_time trace_time prev_event_time
+0                                              
+1                                              
+2  0.285643417005655        0.0             0.0
+3  0.285643417005655        0.0             0.0
+4  0.285742633197738        0.0             0.0
+
+
+'''
