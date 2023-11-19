@@ -8,7 +8,7 @@ import gc
 import os
 import config
 #will make the first graph
-#import Copy_of_NewBig_server as big
+import Copy_of_NewBig_server as bg
 
 args=config.load() 
 """**Features**"""
@@ -16,6 +16,7 @@ args=config.load()
 from pm4py.util import xes_constants as xes
 import pm4py
 from pm4py.objects.log import obj as log_instance
+
 
 def get_all_event_attributes_from_log(log):
     """
@@ -59,23 +60,6 @@ def get_all_trace_attributes_from_log(log):
     if xes.DEFAULT_TRACEID_KEY in all_attributes:
         all_attributes.remove(xes.DEFAULT_TRACEID_KEY)
     return all_attributes
-
-##########_______MOD_B__________###########
-
-def convert_xes_to_csv(log, csv_name):
-    df_xes = pm4py.convert_to_dataframe(log) #converte il file .xes in un dataframe
-    df_xes = df_xes.rename(columns={'case:concept:name': 'Case ID', 'time:timestamp': 'Timestamp'})
-    df_xes.drop(['Activity'], errors='ignore', axis=1, inplace=True)
-    df_xes = df_xes.rename(columns={'concept:name': 'Activity'})
-    df_xes = df_xes.rename(columns=lambda x: x.replace('case:', ''))
-    column_sort = ['Case ID', 'Activity', 'Timestamp'] + [col for col in df_xes.columns if col not in ['Case ID', 'Activity', 'Timestamp']]
-    df_xes = df_xes[column_sort]
-    df_xes.to_csv(csv_name, index=False)
-    return df_xes
-
-path_csv = args.csv_name
-path_xes = './Input/xes/'+args.xes_name
-log_file = pm4py.read_xes(path_xes)
 
 # trace_attr = get_all_trace_attributes_from_log(a)
 # print('trace:' + str(trace_attr))
@@ -634,8 +618,8 @@ print_file.flush()
 # # *********************************************************************************************
 
 #targetframe=pd.read_csv(f"./{args.csv_name}",low_memory=False)
-#targetframe=convert_xes_to_csv(log_file, path_csv)
-targetframe=convert_xes_to_csv(log_file, path_csv)
+targetframe = bg.df_targetframe
+#targetframe = convert_xes_to_csv(log_file, path_csv)
 col_name = 'Case ID'
 if col_name in targetframe.columns:
     targetframe[col_name] = targetframe[col_name].astype(str)
@@ -645,19 +629,32 @@ else:
 
 ##############___________MOD_B___________##################
 # pulizia di tutte le colonne con il numero di 0 > 60/70 % or Nan > 5% eliminare
+col_eliminate = []
 soglia_0 = int(len(targetframe) * 0.66) # Calcola la soglia per il numero massimo di zeri consentiti
 colonne_da_eliminare_0 = targetframe.columns[(targetframe == 0).sum() > soglia_0] # Elimina le colonne con il 66% di zeri
 targetframe = targetframe.drop(columns=colonne_da_eliminare_0)
+col_eliminate = colonne_da_eliminare_0.to_list()
 
 soglia_nan = int(len(targetframe) * 0.05) # Calcola la soglia per il numero massimo di NaN consentiti
 colonne_da_eliminare_nan = targetframe.columns[targetframe.isna().sum() > soglia_nan] # Elimina le colonne con il 5% di NaN
 targetframe = targetframe.drop(columns=colonne_da_eliminare_nan)
+col_eliminate += colonne_da_eliminare_nan.to_list()
 
+col_unique_val = [col for col in targetframe.columns if targetframe[col].nunique() == 1]
+targetframe = targetframe.drop(columns=col_unique_val)
+col_eliminate += col_unique_val
 
+with open("col_eliminate.txt", "w") as file:
+    file.write("Colonne eliminate per numero di 0 > 66%:\n")
+    file.write("\n".join(colonne_da_eliminare_0) + "\n\n")
+    file.write("Colonne eliminate per numero di NaN > 5%:\n")
+    file.write("\n".join(colonne_da_eliminare_nan) + "\n")
+    file.write("Colonne eliminate con stesso valore per ogni riga:\n")
+    file.write("\n".join(col_unique_val) + "\n")
 
-
-
-
+print("Colonne eliminate per zeri:", colonne_da_eliminare_0)
+print("Colonne eliminate per NaN:", colonne_da_eliminare_nan)
+print("Colonne eliminate per valore unico:", col_unique_val)
 
 
 

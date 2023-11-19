@@ -82,18 +82,22 @@ log_total=pm4py.read_xes(log_file)
 
 #log_total_frame= pm4py.convert_to_dataframe(log_total)
 
+
+####################_______________MOD_B_____________############################
+
 #This function convert the .xes file to .csv file
 def convert_xes_to_csv(log, csv_name):
-  toCsv = pm4py.convert_to_dataframe(log) #convert the .xes to dataframe
-  toCsv = toCsv.rename(columns={'case:concept:name': 'Case ID', 'time:timestamp': 'Timestamp'})
-  toCsv.drop(['Activity'], errors='ignore', axis=1, inplace=True)
-  toCsv = toCsv.rename(columns={'concept:name': 'Activity'})
-  toCsv = toCsv.rename(columns=lambda x: x.replace('case:', ''))
-  column_sort = ['Case ID', 'Activity', 'Timestamp'] + [col for col in toCsv.columns if col not in ['Case ID', 'Activity', 'Timestamp']]
-  toCsv = toCsv[column_sort]
-  toCsv.to_csv(csv_name, index=False)
+    df_xes = pm4py.convert_to_dataframe(log) #convert il file .xes in un dataframe
+    df_xes = df_xes.rename(columns={'case:concept:name': 'Case ID', 'time:timestamp': 'Timestamp'})
+    df_xes.drop(['Activity'], errors='ignore', axis=1, inplace=True)
+    df_xes = df_xes.rename(columns={'concept:name': 'Activity'})
+    df_xes = df_xes.rename(columns=lambda x: x.replace('case:', ''))
+    column_sort = ['Case ID', 'Activity', 'Timestamp'] + [col for col in df_xes.columns if col not in ['Case ID', 'Activity', 'Timestamp']]
+    df_xes = df_xes[column_sort]
+    df_xes.to_csv(csv_name, index=False)
+    return df_xes
 
-convert_xes_to_csv(log_total, path_csv) 
+df_targetframe = convert_xes_to_csv(log_total, path_csv)
 
 
 # #Inductive Miner Infrequent - Petri Net
