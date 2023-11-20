@@ -12,7 +12,8 @@ import os
 import config #arguments
 #import GeneralPreprocessing as gp
 
-args=config.load()
+config.clean_directories() #pulizia delle directory
+args = config.load()
 
 
 #-----hardcoded-----#
@@ -71,33 +72,31 @@ args=config.load()
 #import entire log
 #make petri net
 
+####################_______________MOD_B_____________############################
 #path for .xes file
 log_file = './Input/xes/'+args.xes_name
 #need to have the petri net
 net_file = args.net_name
 #path for .csv file
-path_csv = args.csv_name
+path_csv = './Input/csv/'+args.csv_name
 # Import .xes file
-log_total=pm4py.read_xes(log_file)
+log_total = pm4py.read_xes(log_file)
 
 #log_total_frame= pm4py.convert_to_dataframe(log_total)
 
-
-####################_______________MOD_B_____________############################
-
 #This function convert the .xes file to .csv file
-def convert_xes_to_csv(log, csv_name):
-    df_xes = pm4py.convert_to_dataframe(log) #convert il file .xes in un dataframe
+def convert_xes_to_csv():
+    df_xes = pm4py.convert_to_dataframe(log_total) #convert il file .xes in un dataframe
     df_xes = df_xes.rename(columns={'case:concept:name': 'Case ID', 'time:timestamp': 'Timestamp'})
     df_xes.drop(['Activity'], errors='ignore', axis=1, inplace=True)
     df_xes = df_xes.rename(columns={'concept:name': 'Activity'})
     df_xes = df_xes.rename(columns=lambda x: x.replace('case:', ''))
     column_sort = ['Case ID', 'Activity', 'Timestamp'] + [col for col in df_xes.columns if col not in ['Case ID', 'Activity', 'Timestamp']]
     df_xes = df_xes[column_sort]
-    df_xes.to_csv(csv_name, index=False)
+    df_xes.to_csv(path_csv, index=False)
     return df_xes
 
-df_targetframe = convert_xes_to_csv(log_total, path_csv)
+#df_targetframe = convert_xes_to_csv()
 
 
 # #Inductive Miner Infrequent - Petri Net
@@ -110,8 +109,10 @@ net, initial_marking, final_marking = inductive_miner.apply(log_total, variant=i
 #                            log=log_total)
 # pn_visualizer.view(gviz)
 
-pm4py.write_pnml(net, initial_marking,final_marking,'dgcnn_log_sample_net.pnml')
-net, initial_marking, final_marking = pm4py.read_pnml('dgcnn_log_sample_net.pnml')
+############################___________MOD_B___________#################################
+pn_first = f'{net_file}/dgcnn_log_sample_net.pnml'
+pm4py.write_pnml(net, initial_marking,final_marking, pn_first)
+net, initial_marking, final_marking = pm4py.read_pnml(pn_first)
 
 # #add start and end to net 
 transitions = net.transitions
@@ -156,7 +157,9 @@ petri_utils.remove_arc(net, list(arcs)[1])
 # for i in range(len(transitions)):
 #     print('tr: ', i, list(transitions)[i])   
 '''
-pm4py.write_pnml(net, initial_marking,final_marking,'dgcnn_log_sample_net_startend.pnml')
+############################___________MOD_B___________#################################
+pn_startend = f'{net_file}/dgcnn_log_sample_net_startend.pnml'
+pm4py.write_pnml(net, initial_marking,final_marking, pn_startend)
 
 
 ''' Algorithm! '''
@@ -761,7 +764,6 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
   #gviz = pn_visualizer.apply(net, initial_marking, final_marking)
   #display.display(gviz)
   #gviz.render(filename="petri")
-
   #start_time_total = time.time()
   #cr = findCausalRelationships(net, initial_marking, final_marking)
   cr = findCausalRelationships(net)
@@ -910,7 +912,7 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
     
 
 
-    saveGFile(V_new, W_new, "./Input/testgraph.g", time.time()-trace_start_time, sort_labels)
+    saveGFile(V_new, W_new, "./Input/testg/testgraph.g", time.time()-trace_start_time, sort_labels)
     saveGfinal(V_new, W_new, "./Input/g/{0}_instance_graphs.g".format(name), sort_labels)
     
 
@@ -925,4 +927,4 @@ def BIG(net_path, log_path, tr_start=0, tr_end=None, view=False, sort_labels=Fal
   
 
 
-BIG(net_file,log_file)
+BIG(pn_startend, log_file)

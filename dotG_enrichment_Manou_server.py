@@ -8,7 +8,7 @@ import gc
 import os
 import config
 #will make the first graph
-import Copy_of_NewBig_server as bg
+import Copy_of_NewBig_server as big
 
 args=config.load() 
 """**Features**"""
@@ -98,6 +98,8 @@ path_xes_dir = "./Input/xes/"
 path_r_dir = "./Input/g/"
 # output path
 path_w = "./Output/Pre-cage/"
+#dataset path
+dataset_dir = args.data_dir
 
 
 xes_list = []
@@ -220,10 +222,9 @@ for f in xes_list:
 for i in range(len(logs)):
   add_info(path_w + str(i) + ".g", g_list[i], logs[i])
 
-if not os.path.exists('./dataset'):
-    os.mkdir('./dataset')
-original= r'./Output/Pre-cage/0.g'
-target= r'./dataset/0.g'
+
+original= fr'{path_w}0.g'
+target= fr'{dataset_dir}/0.g'
 import shutil
 shutil.copyfile(original,target)
 
@@ -285,9 +286,9 @@ import math
 
 #os.system("head -1000 " + PATH + "Output/Pre-cage/merged.g > " + PATH + "Output/Pre-cage/merged_short.g")
 
-path_read = "./Output/Pre-cage/merged.g" #all the 4 .g partition merged
+path_read = f'{path_w}merged.g' #all the 4 .g partition merged
 
-path_write =  "./dataset/complete.g"
+path_write =  f'{dataset_dir}/complete.g'
 
 # cl=open(path_write, 'wb') 
 # cl.close()
@@ -423,8 +424,10 @@ the pipeline will be:
 #         ''' dirty but mantain the structure'''
 #         edge_dataframe = edge_dataframe.iloc[0:0] 
 
-#create g_dataframe myself
-print_file=open('./log.txt','w')
+#create g_dataframe myself 
+
+register = './Output/register'
+print_file=open(f'{register}/log.txt','w')
 print_file.write('Start with g_dataframe...\n')
 print_file.flush()
 
@@ -618,7 +621,7 @@ print_file.flush()
 # # *********************************************************************************************
 
 #targetframe=pd.read_csv(f"./{args.csv_name}",low_memory=False)
-targetframe = bg.df_targetframe
+targetframe = big.convert_xes_to_csv()
 #targetframe = convert_xes_to_csv(log_file, path_csv)
 col_name = 'Case ID'
 if col_name in targetframe.columns:
@@ -630,31 +633,29 @@ else:
 ##############___________MOD_B___________##################
 # pulizia di tutte le colonne con il numero di 0 > 60/70 % or Nan > 5% eliminare
 col_eliminate = []
+del_col_file=open(f'{register}/deleted_columns.txt','w')
+del_col_file.write("Colonne eliminate per numero di 0 > 66%:\n")
 soglia_0 = int(len(targetframe) * 0.66) # Calcola la soglia per il numero massimo di zeri consentiti
 colonne_da_eliminare_0 = targetframe.columns[(targetframe == 0).sum() > soglia_0] # Elimina le colonne con il 66% di zeri
 targetframe = targetframe.drop(columns=colonne_da_eliminare_0)
 col_eliminate = colonne_da_eliminare_0.to_list()
+del_col_file.write("\n".join(colonne_da_eliminare_0.to_list()) + "\n\n")
+del_col_file.flush()
 
+del_col_file.write("Colonne eliminate per numero di NaN > 5%:\n")
 soglia_nan = int(len(targetframe) * 0.05) # Calcola la soglia per il numero massimo di NaN consentiti
 colonne_da_eliminare_nan = targetframe.columns[targetframe.isna().sum() > soglia_nan] # Elimina le colonne con il 5% di NaN
 targetframe = targetframe.drop(columns=colonne_da_eliminare_nan)
 col_eliminate += colonne_da_eliminare_nan.to_list()
+del_col_file.write("\n".join(colonne_da_eliminare_nan.to_list()) + "\n\n")
+del_col_file.flush()
 
-col_unique_val = [col for col in targetframe.columns if targetframe[col].nunique() == 1]
+del_col_file.write("Colonne eliminate con stesso valore per ogni riga:\n")
+col_unique_val = [col for col in targetframe.columns if targetframe[col].nunique() == 1] # Elimina le colonne con lo stesso elem per ogni riga
 targetframe = targetframe.drop(columns=col_unique_val)
 col_eliminate += col_unique_val
-
-with open("col_eliminate.txt", "w") as file:
-    file.write("Colonne eliminate per numero di 0 > 66%:\n")
-    file.write("\n".join(colonne_da_eliminare_0) + "\n\n")
-    file.write("Colonne eliminate per numero di NaN > 5%:\n")
-    file.write("\n".join(colonne_da_eliminare_nan) + "\n")
-    file.write("Colonne eliminate con stesso valore per ogni riga:\n")
-    file.write("\n".join(col_unique_val) + "\n")
-
-print("Colonne eliminate per zeri:", colonne_da_eliminare_0)
-print("Colonne eliminate per NaN:", colonne_da_eliminare_nan)
-print("Colonne eliminate per valore unico:", col_unique_val)
+del_col_file.write("\n".join(col_unique_val) + "\n\n")
+del_col_file.flush()
 
 
 
@@ -689,10 +690,17 @@ selected_columns = [col for col in targetframe.columns if col not in columns_to_
 clm = targetframe.columns.values
 clm = np.sort(clm)
 
+selected_columns =  sorted(selected_columns)
 # Selezionare le colonne interessate
-selected_columns = SG(sorted(selected_columns))
+#selected_columns = SG(sorted(selected_columns))
+del_col_file.write("Colonne che non sono state selezionate:\n")
+selected_columns, not_selected_columns = SG(selected_columns, col_eliminate)
+del_col_file.write("\n".join(not_selected_columns) + "\n\n")
+del_col_file.flush()
 
-
+#with open(f'{register}/deleted_col.txt', 'a') as file:
+    #file.write("Colonne che non sono state selezionate:\n")
+    #file.write("\n".join(not_selected_columns) + "\n\n")
 
 '''
 
@@ -1036,6 +1044,8 @@ print_file.close()
 w = open(path_write, "w") 
 w.writelines(tmp)
 w.close()
+
+
 
 
 def get_gDataFrame():

@@ -6,9 +6,25 @@ Created on Wed Aug 10 09:51:11 2022 (3.10.6 ? )
 
 DGCNN server configuration file
 """
-
 import os
-import argparse 
+import argparse
+import shutil
+
+####################_______________MOD_B_____________############################
+#pulizia delle directory
+def clean_directories():
+    # Elimina le dir specificate
+    to_delete = ['./Input/csv/', './Input/g', './Input/testg', './Output/', './dataset']
+    for dir in to_delete:
+        if os.path.exists(dir):
+            shutil.rmtree(dir)
+    # Crea le nuove dir se non esistono
+    to_create = ['./Input/csv', './Input/xes', './Input/g', './Input/testg', './Output/petri_nets', './Output/Pre-cage', 
+                 './Output/register','./dataset/processed', './Output/checkpoints/best_test', './Output/checkpoints/best_train', 
+                 './Output/checkpoints/immagini/best_test', './Output/checkpoints/immagini/best_train', './Output/checkpoints/immagini/cm_epoch']
+    for dir in to_create:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
 
 
 def load():
@@ -16,13 +32,13 @@ def load():
     
     parser.add_argument('--attr_list', default=['bu', 'nrchanges', 'ttmotif', 'plant', 'matgroup', 'polines', 'vendor', 'item'])
     #data
-    parser.add_argument('--data_dir', default="./datasets")
+    parser.add_argument('--data_dir', default="./dataset")
     #parser.add_argument('--csv_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd.csv")
     parser.add_argument('--csv_name', default="testCsv.csv")
     #parser.add_argument('--xes_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd_startend.xes")
     parser.add_argument('--xes_name', default="testXes.xes")
-    parser.add_argument('--net_name', default="dgcnn_log_sample_net_startend.pnml")
-    parser.add_argument('--checkpoint_dir', default="./checkpoints")
+    parser.add_argument('--net_name', default="./Output/petri_nets") #__MOD_B_#
+    parser.add_argument('--checkpoint_dir', default="./Output/checkpoints")
     parser.add_argument('--dataset', default='p2p')
     parser.add_argument('--nrcases',default=4000,type=int)
     
