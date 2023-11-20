@@ -19,6 +19,11 @@ Andare su https://github.com/rusty1s/pytorch_geometric e prendere i comandi per 
 
 #!pip install torch
 
+
+import pandas as pd
+
+
+
 import torch
 import config
 import os
@@ -47,6 +52,53 @@ file_name = "complete"#"completeHelpdesk"
 #CHANGED!!!
 file_id="0"
 
+
+
+#   *****************************************************************************************************
+#   Mi porto dietro il dataframe del .g enrichment senza dover leggere dal file
+#   Mi salvo in una variabile categoricalAttribute tutti gli attributi categorici del .g
+#   Mi salvo in una variabile numericAttribute tutti gli attributi numerici
+#   
+#   MOD MR
+# #
+
+from dotG_enrichment_Manou_server import get_gDataFrame as dotG
+
+g_dataframe = dotG()
+g_columns = g_dataframe.columns.values
+g_columns_plus = g_columns[7:]
+
+
+categoriaclAttribute = []  
+numericAttribute = []  
+
+for col_name in g_columns_plus:
+    col_value = g_dataframe.at[2 , col_name]
+    try:
+        tmp = float(col_value)
+        if col_name not in numericAttribute:
+            numericAttribute.append(col_name)
+    except:
+        tmp = col_value
+        if col_name not in categoriaclAttribute:
+            categoriaclAttribute.append(col_name)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #prende ogni grafo e lo salva come inverso solo se sono falsi tutti i controlli if
 def create_graph():
     ListGraph=[]
@@ -62,7 +114,7 @@ def create_graph():
             pass
         
         elif line[0]=="v":
-            ids.append(line[4]) #cosa vuole prendere di preciso qui? MR
+            ids.append(line[4]) #qui prendo sempre il nome univoco dell'evento dal 0.g
             
     input = open(PATH+"/"+file_name+".g", "r")       #apro il file
     
@@ -76,14 +128,31 @@ def create_graph():
                                                                      #creo una lista vuota per salvare le activity da andare a scrivere nel file
     #attrib2nd = []
     s=0
-    for lines in input.readlines():                                                 #ciclo per la lettura del file riga per riga
-        line = lines.split()                                                        #divide la riga in una lista di parole
-        #si entra solo alla fine di un grafo
-        if not line:                                                                #se vero fine lettura di un grafo 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def verifyGraph(graph):
             if nx.number_of_isolates(G) !=0: 
                 #print('error line {}'.format(line)) #controllo che il grafo non contiene nodi isolati
                 pass                                                                #istruzione nulla
-            elif len(nx.get_node_attributes(G, "attribute"))!=len(G.nodes()):       #cotrollo che non ci siano nodi senza attributo
+            elif len(nx.get_node_attributes(G, "name_event"))!=len(G.nodes()):       #cotrollo che non ci siano nodi senza attributo
                 #print('error line {}'.format(line))
                 pass
             elif nx.number_connected_components(G.to_undirected()) !=1:             #controllo che ci sia una sola componenti connesse
@@ -95,63 +164,74 @@ def create_graph():
             else:
                 ListGraph.append(G.reverse())                                       #salvo il grafo con gli archi invertiti         
 
- 
-        elif line[0]=="XP":                                                         #se vero creo un nuovo grafo vuoto
+        
+
+    # Trova gli indici delle righe che contengono 'XP'
+    xp_indices = g_dataframe[g_dataframe['e_v'] == 'XP'].index
+
+    # Itera su ogni gruppo di righe
+    for start, end in zip(xp_indices, xp_indices[1:]):
+        # Estrai il sottogruppo, escludendo l'indice 'end'
+        sub_df = g_dataframe.iloc[start:end]
+
+        for index, row in sub_df.iterrows():
+
+            if row['e_v']=='XP':
+                #Creo un nuovo grafo
+                G = nx.DiGraph()
+
+
+            if row['e_v'] == 'v':
+                # Crea un nuovo nodo
+                node_nr = int(float(row['node1']) - 1)
+                node_attributes = {}
+                node_attributes['idn'] = ids[s]
+
+                # Aggiungi attributi dalle colonne a partire dalla quarta colonna in poi
+                for col_name in sub_df.columns[3:]:
+                    col_value = row[col_name]
+                    try:
+                        node_attributes[col_name] = float(col_value)
+                        if col_name not in numericAttribute:
+                            numericAttribute.append(col_name)
+                    except:
+                        node_attributes[col_name] = col_value
+                        if col_name not in categoriaclAttribute:
+                            categoriaclAttribute.append(col_name)
+
+                # Aggiungi il nodo al grafo
+                G.add_node(node_nr, **node_attributes)
+                s+=1
+
+
             
-            G = nx.DiGraph()
-        elif line[0]=="v":                                                          #se vero aggiungo un nodo e la sua informazione al grafo
-            #*********************************************************<--> INTERVIENI QUI PER + ATTRIB, NO RIUSCITO PENSARE SOLUZIONE DINAMICA
+            elif row['e_v']=='e':
+                #Creo un arco
+                G.add_edge(int(float(row['node1'])-1),int(float(row['node2'])-1))
 
-            # print(line[3:73][1])
-            # print(type(line[3:73][1]))
-            # print(line[74])
-            # print(type(line[74]))
+        verifyGraph(G)
 
-            # <HARDCODED>
-            G.add_node(int(float(line[1])-1),       #node nr
-                       attribute = line[2],         #activity
-                       attrib3 = float(line[3]),    #time features     #73..
-                       attrib4 = float(line[4]),
-                       attrib5 = float(line[5]),
-                       ttmotif= float(line[6]),
-                       polines=float(line[7]),
-                       #nrchanges=float(line[8]),
-                       #deltapodd=float(line[9]),
-                       bu=line[8],
-                       plant=line[9],
-                       item=line[10],
-                       vendor=line[11],
-                       matnrshort=line[12],
-                       target= float(line[13]), #added the target here!     \\\Viene preso il dtl\\
-                       idn=ids[s] #concept:name - idname?
-                       )
-            s+=1
-            # <\HARDCODED>
-        elif line[0]=="e":                                                          #se vero aggiungo un arco al grafo
-            G.add_edge(int(float(line[1])-1),int(float(line[2])-1))
-    
-    ListGraph.append(G.reverse()) #added this to also append the last graph!! because graph is only appended at the end.
-    input.close()
-    '''
-    La utilizzo solo per salvarmi tutti gli attributi categorici per fare il hoe finale?
-    '''
+
+    # '''
+    # La utilizzo solo per salvarmi tutti gli attributi categorici per fare il hoe finale?
+    # '''
     #I DON'T THINK I NEED THIS PART, BECAUSE IT'S USED FOR OUTPUT
-    for G in ListGraph:                                                             #crea lista attributi nodi (univoci)--> serve per qualunque attributo categorico
-        for node in G.nodes:
-            if G.nodes[node]['attribute'] not in attributes:
-                attributes.append(G.nodes[node]['attribute'])
-            if G.nodes[node]['bu'] not in bus:
-                bus.append(G.nodes[node]['bu'])
-            if G.nodes[node]['plant'] not in plants:
-                plants.append(G.nodes[node]['plant'])
-            if G.nodes[node]['item'] not in items:
-                items.append(G.nodes[node]['item'])
-            if G.nodes[node]['vendor'] not in vendors:
-                vendors.append(G.nodes[node]['vendor'])
-            if G.nodes[node]['matnrshort'] not in matnrs:
-                matnrs.append(G.nodes[node]['matnrshort'])
-            # if G.nodes[node]['attrib2nd'] not in attrib2nd:
-            #     attrib2nd.append(G.nodes[node]['attrib2nd'])
+    # for G in ListGraph:                                                             #crea lista attributi nodi (univoci)--> serve per qualunque attributo categorico
+    #     for node in G.nodes:
+    #         if G.nodes[node]['attribute'] not in attributes:
+    #             attributes.append(G.nodes[node]['attribute'])
+    #         if G.nodes[node]['bu'] not in bus:
+    #             bus.append(G.nodes[node]['bu'])
+    #         if G.nodes[node]['plant'] not in plants:
+    #             plants.append(G.nodes[node]['plant'])
+    #         if G.nodes[node]['item'] not in items:
+    #             items.append(G.nodes[node]['item'])
+    #         if G.nodes[node]['vendor'] not in vendors:
+    #             vendors.append(G.nodes[node]['vendor'])
+    #         if G.nodes[node]['matnrshort'] not in matnrs:
+    #             matnrs.append(G.nodes[node]['matnrshort'])
+    #         # if G.nodes[node]['attrib2nd'] not in attrib2nd:
+    #         #     attrib2nd.append(G.nodes[node]['attrib2nd'])
     
     
 
@@ -206,7 +286,7 @@ def define_target(graph,subgraph):    #qui toccherà giocarci quando vorremo est
   
     new_t=''
     for i in range(0,len(target)):                                                  # sostituisce ogni nodo della lista target con la corrispettiva activity (attributo)
-      targ_attr=graph.nodes[target[i]]['attribute']
+      targ_attr=graph.nodes[target[i]]['name_event']
       new_t=new_t+str(targ_attr)+' '
     target=new_t[:-1]   
 
@@ -243,15 +323,24 @@ def create_sub_graph():
 
 ##INSERIMENTO DEL ACTIVITY DA PREDIRRE
 
-                target_t1 = graph.nodes[node]['target']
-                SubGraph.graph['target_std']= graph.nodes[node]['target'] #put the target value there for the correct node.     #assegna come target_std al sottografo il nodo corrente
-                nodevar=node
+
+                #   **********************************************************
+                #   target = Days To Late
+                #   i don't use it
+                # #
+
+                # target_t1 = graph.nodes[node]['target']
+                # SubGraph.graph['target_std']= graph.nodes[node]['target'] #put the target value there for the correct node.     #assegna come target_std al sottografo il nodo corrente
+                # nodevar=node
+
+
+
                 #if SubGraph.graph['target_std'] not in target_std:                #inserisce l'activity solo se non è già inserita nella lista target_std
                  #   target_std.append(SubGraph.graph['target_std'])
                 # *********************************************
                 #NOT NEEDED! IT SHOULDN'T USE THIS IN TRAINING
 
-                target_par_tmp = define_target(graph.copy(),SubGraph)
+                
                 SubGraph.graph['target_par']= define_target(graph.copy(),SubGraph)  #assegna come target_par al sottografo il nodo corrente          
                 
                 #CHANGED!!!
@@ -264,23 +353,27 @@ def create_sub_graph():
                 #     ListSubGraph.append(SubGraph.copy().to_undirected())
                 #bij mij wordt er wel een voorspelling gemaakt bij de laatste prefix, bij next activity is dat tot de een na laatste
           # <HARDCODED>
-            SubGraph.add_node(node, 
-                              attribute=graph.nodes[node]['attribute'],
-                              #attrib2=graph.nodes[node]['attrib2'],
-                              attrib3=graph.nodes[node]['attrib3'],
-                              attrib4=graph.nodes[node]['attrib4'],
-                              attrib5=graph.nodes[node]['attrib5'],
-                              ttmotif=graph.nodes[node]['ttmotif'],
-                              polines=graph.nodes[node]['polines'],
-                              #nrchanges=graph.nodes[node]['nrchanges'],
-                              #deltapodd=graph.nodes[node]['deltapodd'],
-                              bu=graph.nodes[node]['bu'],
-                              plant=graph.nodes[node]['plant'],
-                              item=graph.nodes[node]['item'],
-                              vendor=graph.nodes[node]['vendor'],
-                              matnrshort=graph.nodes[node]['matnrshort']
+
+            attrs = graph.nodes[node]
+            SubGraph.add_node(node, **attrs)
+
+            # SubGraph.add_node(node, 
+            #                   attribute=graph.nodes[node]['attribute'],
+            #                   #attrib2=graph.nodes[node]['attrib2'],
+            #                   attrib3=graph.nodes[node]['attrib3'],
+            #                   attrib4=graph.nodes[node]['attrib4'],
+            #                   attrib5=graph.nodes[node]['attrib5'],
+            #                   ttmotif=graph.nodes[node]['ttmotif'],
+            #                   polines=graph.nodes[node]['polines'],
+            #                   #nrchanges=graph.nodes[node]['nrchanges'],
+            #                   #deltapodd=graph.nodes[node]['deltapodd'],
+            #                   bu=graph.nodes[node]['bu'],
+            #                   plant=graph.nodes[node]['plant'],
+            #                   item=graph.nodes[node]['item'],
+            #                   vendor=graph.nodes[node]['vendor'],
+            #                   matnrshort=graph.nodes[node]['matnrshort']
                               
-                              )     #aggiungo un nuovo nodo al sottografo
+            #                   )     #aggiungo un nuovo nodo al sottografo
           
             
             # <HARDCODED>
@@ -316,7 +409,6 @@ def create_sub_graph():
 
 """Dal file attributi.txt creato precedentemente si crea un dizionario delle activity che contiene per ogni activity il one hot vector corrispondente"""
 
-import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
@@ -534,4 +626,5 @@ PATH='./dataset/'
 
 #first graph for all cases, for some reason missing my final graph #supposed to be 458 instead of 457 graphs
 #then subgraphs for all prefixes>2 size 
-create_graph()
+# create_graph()
+G = TraceDataset()
