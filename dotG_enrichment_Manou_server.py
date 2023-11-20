@@ -1038,22 +1038,24 @@ w.writelines(tmp)
 w.close()
 
 
-
-
 def get_gDataFrame():
-  g_dataframe_tmp = g_dataframe.iloc[:, 4:-1]  # Seleziona tutte le righe (:), dalla terza colonna in poi (2:)
-  return g_dataframe_tmp
+  
+  # indici_da_elim = g_dataframe[g_dataframe['e_v'] == ''].index
+  df = g_dataframe
+  df['e_v'] = df['e_v'].replace('\nXP', 'XP')
+  df = df.iloc[:,:-1]
+  # g_dataframe_tmp = g_dataframe.iloc[:, 4:-1]  # Seleziona tutte le righe (:), dalla terza colonna in poi (2:)
+  return df
 
 
 '''
 Esempio di cosa restituisce get_gDataFrame senza nessuna colonna selezionata dall'utente:
 
-           norm_time trace_time prev_event_time
-0                                              
-1                                              
-2  0.285643417005655        0.0             0.0
-3  0.285643417005655        0.0             0.0
-4  0.285742633197738        0.0             0.0
-
+  e_v node1 node2 name_event          norm_time trace_time prev_event_time 
+0                                                                                      
+1  XP                                                                                  
+2   v   1.0            START  0.285643417005655        0.0             0.0  
+3   v   2.0        Starttrip  0.285643417005655        0.0             0.0   
+4   v   3.0          Endtrip  0.285742633197738        0.0             0.0   
 
 '''
