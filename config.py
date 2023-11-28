@@ -37,7 +37,7 @@ def load():
     parser.add_argument('--csv_name', default="testCsv.csv")
     #parser.add_argument('--xes_name', default="PreprocessedLog_total_240822_10attr_nonegdpodd_startend.xes")
     parser.add_argument('--xes_name', default="testXes.xes")
-    parser.add_argument('--net_name', default="./Output/petri_nets") #__MOD_B_#
+    parser.add_argument('--net_name', default="./Output/petri_nets") #__MOD_B__#
     parser.add_argument('--checkpoint_dir', default="./Output/checkpoints")
     parser.add_argument('--dataset', default='p2p')
     parser.add_argument('--nrcases',default=4000,type=int)

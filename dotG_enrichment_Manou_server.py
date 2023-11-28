@@ -6,11 +6,12 @@ With time features from Andrea!
 """
 import gc
 import os
-import config
+#import config
+from config import load
 #will make the first graph
 import Copy_of_NewBig_server as big
 
-args=config.load() 
+args = load()
 """**Features**"""
 
 from pm4py.util import xes_constants as xes
@@ -212,10 +213,14 @@ def add_info(path_w, path_r, log):
 from pm4py.objects.log.importer.xes import importer as xes_importer
 
 # each rows of logs contains one xes files
-
+# *****************Serve per leggere più xes file presenti. Per ora è commentato dato che stiamo usando solo un file xes alla volta********************************
+"""
 logs = []
 for f in xes_list:
   logs.append(xes_importer.apply(f))
+"""
+logs = [big.log_total] # per ora riprendiamo log_total presente in Copy_of_NewBig_server
+
 
 # dynamic call of add_info function based on previous logs list
 
@@ -435,6 +440,7 @@ g_dataframe=pd.DataFrame(columns=list(df.columns))  #viene creato il g_dataframe
 g_dataframe.loc[0]=np.array(np.nan*len(g_dataframe.columns))
 g_dataframe=pd.concat((g_dataframe,df),ignore_index=True)
 g_dataframe['e_v']=g_dataframe['e_v'].fillna('')
+
 g_dataframe=g_dataframe[:-1]
 df_shift=pd.DataFrame(columns=list(df.columns))
 df_shift.loc[0]=np.array(np.nan*len(df_shift.columns))
