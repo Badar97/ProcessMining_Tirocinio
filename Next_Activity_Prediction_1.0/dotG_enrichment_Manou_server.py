@@ -286,8 +286,11 @@ import pandas as pd
 import numpy as np
 import datetime
 #import networkx as nx
-from tensorflow.keras.utils import to_categorical
+#from tensorflow.keras.utils import to_categorical
 import math
+import tensorflow as tf
+
+to_categorical = tf.keras.utils.to_categorical
 
 #os.system("head -1000 " + PATH + "Output/Pre-cage/merged.g > " + PATH + "Output/Pre-cage/merged_short.g")
 
