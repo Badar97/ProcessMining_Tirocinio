@@ -1,0 +1,40 @@
+Epoch: 000, Train Loss: 3.5653, Test Loss: 3.1943 
+time epoch = 11.533121824264526 
+Epoch: 001, Train Loss: 2.2919, Test Loss: 1.8777 
+time epoch = 9.15248990058899 
+Epoch: 002, Train Loss: 1.6887, Test Loss: 1.4641 
+time epoch = 8.817990779876709 
+Epoch: 003, Train Loss: 1.4954, Test Loss: 1.3815 
+time epoch = 8.129395723342896 
+Epoch: 004, Train Loss: 1.4208, Test Loss: 1.3398 
+time epoch = 8.031827688217163 
+Epoch: 005, Train Loss: 1.3753, Test Loss: 1.3102 
+time epoch = 8.542297124862671 
+Epoch: 006, Train Loss: 1.3518, Test Loss: 1.2957 
+time epoch = 8.523616552352905 
+Epoch: 007, Train Loss: 1.3281, Test Loss: 1.2984 
+time epoch = 8.779012203216553 
+Epoch: 008, Train Loss: 1.3066, Test Loss: 1.2915 
+time epoch = 9.804507970809937 
+Epoch: 009, Train Loss: 1.2924, Test Loss: 1.2905 
+time epoch = 10.546995401382446 
+Epoch: 010, Train Loss: 1.2783, Test Loss: 1.3034 
+time epoch = 8.853732824325562 
+Epoch: 011, Train Loss: 1.2601, Test Loss: 1.3161 
+time epoch = 8.815082311630249 
+Epoch: 012, Train Loss: 1.2470, Test Loss: 1.3109 
+time epoch = 8.682751655578613 
+Epoch: 013, Train Loss: 1.2320, Test Loss: 1.3072 
+time epoch = 8.384005546569824 
+Epoch: 014, Train Loss: 1.2167, Test Loss: 1.3366 
+time epoch = 8.334949016571045 
+Epoch: 015, Train Loss: 1.2063, Test Loss: 1.3274 
+time epoch = 8.477945804595947 
+Epoch: 016, Train Loss: 1.1970, Test Loss: 1.3426 
+time epoch = 8.363850831985474 
+Epoch: 017, Train Loss: 1.1767, Test Loss: 1.3623 
+time epoch = 8.324490308761597 
+Epoch: 018, Train Loss: 1.1604, Test Loss: 1.3768 
+time epoch = 8.519737005233765 
+Epoch: 019, Train Loss: 1.1435, Test Loss: 1.4288 
+time epoch = 8.560276985168457 
