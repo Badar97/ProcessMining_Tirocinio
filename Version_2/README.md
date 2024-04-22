@@ -11,11 +11,11 @@ For install, move to ``nextActivityPrediction`` directory, then run: <br>
 ## How it works (brief explaination to improve)
 Please note that code names must be updated, this section is exclusively to illustrate the methodology of our approach.<br>
 - BIG.py:<br>
-<img src="images/BIG.png" width=30% height=50%><br>
+<img src="FloChart/BIG.png" width=30% height=50%><br>
 - DATASET.py:<br>
-<img src="images/DATASET.png" width=30% height=50%><br>
+<img src="FloChart/DATASET.png" width=30% height=50%><br>
 - TRAINING.py:<br>
-<img src="images/TRAINING.png" width=30% height=50%><br>
+<img src="FloChart/TRAINING.png" width=30% height=50%><br>
 
 ## How to run
 - To create instance graphs, run:<br>
