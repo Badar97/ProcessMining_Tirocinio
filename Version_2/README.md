@@ -21,6 +21,9 @@ Please note that code names must be updated, this section is exclusively to illu
 - To create instance graphs, run:<br>
 ``python BIG.py``
 
+- To create state graphs for dataset enrichment with subgraphs, run:<br>
+``python STATE.py``
+
 - To preprocess instance graphs for DGCNN, run:<br>
 ``python DATASET.py``
 
