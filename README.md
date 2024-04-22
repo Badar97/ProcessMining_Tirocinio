@@ -1,5 +1,4 @@
- # Guida d'utilizzo
- ### Internship Process Mining a.a 2022/2023
+ # Internship Process Mining a.a 2022/2023
  #### Badar Ali Waqar
  
  
