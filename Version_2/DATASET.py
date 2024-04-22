@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from torch_geometric.data import InMemoryDataset, Data
 
-from config import PREFIX_PATH, OUTPUT_DS_PATH
+from config import PREFIX_PATH, OUTPUT_DS_PATH, STATE_PATH
 from dotG import get_g_dataframe
 
 from os.path import join
@@ -407,9 +407,6 @@ def add_status(cid, event_pos, subg_dir, Subgraph):
             continue
     return Subgraph
 
-stategraphs_dir = 'stategraphs/'
-#stategraphs_dir = 'sta/'
-
 
 # Metodo per la creazione dei sottografi nel formato di networkx, a partire dai grafi precedentemente creati.
 # Alla fine viene creato un file che contiene il nome delle varie tipologie di activity presenti nel dataset come
@@ -478,12 +475,12 @@ def create_sub_graph():
                 #*******************NEW_ADD_B**********************
                 c_id = graph.nodes[node]['idn']
 
-                if os.path.exists(stategraphs_dir) and os.path.isdir(stategraphs_dir):
-                    SubGraph.graph['status'] = add_status(c_id, event_num, stategraphs_dir, SubGraph)
+                if os.path.exists(STATE_PATH) and os.path.isdir(STATE_PATH):
+                    SubGraph.graph['status'] = add_status(c_id, event_num, STATE_PATH, SubGraph)
                     status.append(SubGraph.graph['status'])
-                    #add_status(c_id, event_num, stategraphs_dir, SubGraph)
+                    #add_status(c_id, event_num, STATE_PATH, SubGraph)
                 elif not not_exist:
-                    print(f"La cartella {stategraphs_dir} non esiste! Operazione per l'aggiunta dello stato non eseguita")
+                    print(f"La cartella {STATE_PATH} non esiste! Operazione per l'aggiunta dello stato non eseguita")
                     not_exist = True
                 
                 ############################################

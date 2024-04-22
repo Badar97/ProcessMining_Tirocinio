@@ -29,6 +29,7 @@ CHECKPOINT_RETE_PATH = join(BASE_PATH, 'checkpoint_rete')
 CK_BEST_TRAIN_PATH = join(CHECKPOINT_RETE_PATH, 'best_train')
 CK_BEST_TEST_PATH = join(CHECKPOINT_RETE_PATH, 'best_test')
 F1_SCORE_PATH = join(BASE_PATH, 'AndamentoF1Score')
+STATE_PATH = join(BASE_PATH, 'stategraphs') #******ADD_B******
 
 
 # pulizia delle directory
