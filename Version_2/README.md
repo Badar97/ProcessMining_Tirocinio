@@ -12,6 +12,8 @@ For install, move to ``nextActivityPrediction`` directory, then run: <br>
 Please note that code names must be updated, this section is exclusively to illustrate the methodology of our approach.<br>
 - BIG.py:<br>
 <img src="FlowChart/BIG.png" width=30% height=50%><br>
+- STATE.py:<br>
+<img src="FlowChart/STATE.png" width=30% height=50%><br>
 - DATASET.py:<br>
 <img src="FlowChart/DATASET.png" width=30% height=50%><br>
 - TRAINING.py:<br>
