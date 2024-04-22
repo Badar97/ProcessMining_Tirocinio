@@ -1,4 +1,4 @@
-# Next Activity Prediction
+# Next Activity Prediction with State
 Materials for Next Activity Prediction through Graph Neural Networks
 
 ## Requirements
