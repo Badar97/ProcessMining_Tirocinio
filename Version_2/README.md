@@ -1,5 +1,5 @@
 # Next Activity Prediction with State
-Materials for Next Activity Prediction through Graph Neural Networks
+Materials for Next Activity Prediction with State Creation through Graph Neural Networks
 
 ## Requirements
 - Python 3.10 (mandatory)
