@@ -16,12 +16,14 @@ import csv
 from os.path import join, exists, isfile
 from os import listdir
 from config import INPUT_PATH, load, clean_directories, \
-INPUT_XES_PATH, LOGS_WITH_NO_START_END, INPUT_G_PATH, OUTPUT_PN_PATH
+INPUT_XES_PATH, LOGS_WITH_NO_START_END, INPUT_G_PATH, OUTPUT_PN_PATH, CSV_PATH
 args = load()
+csv_path = args.csv_name
 
 
 def check_start_end_traces(log_path):
     log = read_xes(log_path)
+    convert_xes_to_csv(log, join(CSV_PATH, csv_path))
     log_name = log_path.split('/')[-1]
     log_name_no_ext = log_name.split('.')[0]
     files_in_path = []
@@ -725,5 +727,4 @@ if __name__ == '__main__':
         net_path = sys.argv[2]
     except (Exception,):
         net_path = None
-
     process(log_name, net_path)
