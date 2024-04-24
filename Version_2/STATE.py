@@ -6,12 +6,18 @@ Created on Sun Feb 18 16:39:51 2024
 @author: lgenga
 """
 
+import sys
 import pandas as pd
 import networkx as nx
 import ast
 import json
-import os
 import re
+
+from shutil import rmtree
+from os import makedirs
+from os.path import join, exists
+from config import load, INPUT_G_PATH, INPUT_XES_PATH, CSV_PATH, STATE_PATH
+args = load()
 
 
 pd.set_option('display.max_columns', None) 
@@ -75,7 +81,9 @@ def get_igs_string(row, col_id_name, mapping, graphs):
                     print('Key '+key+" not found in the mapping")
     
     c_id_ev = case_id_event.replace(' ', '')
-    ig_file = f'{save_path}/stategraphs/' + c_id_ev + '_' + str(pos_event) + '.g'
+    ig_name = c_id_ev + '_' + str(pos_event) + '.g'
+    #ig_file = f'{save_path}/stategraphs/' + c_id_ev + '_' + str(pos_event) + '.g'
+    ig_file = join(STATE_PATH, 'stategraphs', ig_name)
     f = open(ig_file, "w")
     f.write(graph_string)
     f.close()
@@ -89,7 +97,7 @@ def find_state(row, col_id_name, log):
     conc_cases=row['concurrent_cases']
     most_recent_event=dict()
     for c in conc_cases:
-        mask=(log[col_id_name]==c) & (log["time:timestamp"]<=row["time:timestamp"])
+        mask=(log[col_id_name]==c) & (log["Timestamp"]<=row["Timestamp"])
         df_filt=log[mask]
         nevent=len(df_filt)
         most_recent_event[c]=nevent
@@ -98,12 +106,12 @@ def find_state(row, col_id_name, log):
 def find_concurrent_cases(row,casespan,col_id_name, mapping):
     event_ci=row[col_id_name]
     print("doing "+str(mapping[event_ci])+" out of "+str(len(casespan)))
-    mask=(casespan['min_ts']<=row['time:timestamp']) & (casespan['max_ts']>=row['time:timestamp']) & (casespan[col_id_name]!=event_ci)
+    mask=(casespan['min_ts']<=row['Timestamp']) & (casespan['max_ts']>=row['Timestamp']) & (casespan[col_id_name]!=event_ci)
     filtered_cases=casespan[mask]
     return filtered_cases[col_id_name].tolist()
 
 def log2casespan(log, col_id_name):
-    result_df = log.groupby(col_id_name)['time:timestamp'].agg(['min', 'max']).reset_index()
+    result_df = log.groupby(col_id_name)['Timestamp'].agg(['min', 'max']).reset_index()
     result_df.columns = [col_id_name, 'min_ts', 'max_ts']
     return result_df
 
@@ -113,23 +121,36 @@ if __name__ == '__main__':
     #name_file = 'andreaHelpdesk' #****5.59MB****
     #name_file = 'PrepaidTravelCost' #****8.39MB****____ok____
     #name_file = 'RequestForPayment' #****19.8****____ok____
-    name_file = 'PermitLog_SE_noSpace' #****22.1MB****
+    #name_file = 'PermitLog_SE_noSpace' #****22.1MB****
     #name_file = 'andrea_bpi12w' #****24.8MB****
     #name_file = 'InternationalDeclarations' #****31.6MB****
     #name_file = 'BPI2012_SE' #****54.1MB****
     #name_file = 'road-start-event' #****248MB****
-    
-    state_dir = 'State'
-    save_path = state_dir + '/' + name_file
+
+    if exists(STATE_PATH):
+        rmtree(STATE_PATH)
+
+    try:
+        log_name = sys.argv[1]
+    except (Exception, ):
+        log_name = None
+    if log_name is None:
+        log_name = args.xes_name
+    filename = join(INPUT_XES_PATH, log_name)
+    if not exists(filename):
+        raise FileNotFoundError(f'File: {filename} not found')
+
+    #name_file = filename.split('/')[-1].split('.')[0]
+    name_file = filename.split('xes\\')[-1].split('.')[0]
 
     #xes_file = f'./Input/xes/{name_file}.xes'
-    g_file = f'./Input/g/{name_file}_instance_graphs.g'
+    #g_file = f'./Input/g/{name_file}_instance_graphs.g'
+    g_file = join(INPUT_G_PATH, f'{name_file}_instance_graphs.g')
     #log = pm4py.read_xes(xes_file)
     #dataframe = pm4py.convert_to_dataframe(log)
-    col_id_name = 'case:concept:name'
+    col_id_name = 'Case ID'
 
-    #log.to_csv('PrepaidTravelCost.csv',sep=',')
-    log = pd.read_csv(f'Input/csv/{name_file}.csv',sep=',')
+    log = pd.read_csv(join(CSV_PATH, f'{name_file}.csv'), sep=',')
     log['pos'] = log.groupby(col_id_name).cumcount() + 1
     
     caseids = log[col_id_name].unique()
@@ -139,23 +160,22 @@ if __name__ == '__main__':
         mapping[c] = i
         i = i + 1
     
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
+    if not exists(join(STATE_PATH, 'stategraphs')):
+        makedirs(join(STATE_PATH, 'stategraphs'))
     
     casespan = log2casespan(log, col_id_name)
     print('casespan done')
-    casespan.to_csv(f'{save_path}/casespan.csv', index = False)
+    #casespan.to_csv(f'{STATE_PATH}/casespan.csv', index = False)
+    casespan.to_csv(join(STATE_PATH, 'casespan.csv'), index = False)
     log['concurrent_cases'] = log.apply(find_concurrent_cases, args = (casespan, col_id_name, mapping), axis = 1)
     log['state'] = log.apply(find_state, args=(col_id_name, log), axis = 1)
-    log.to_csv(f'{save_path}/{name_file}_status.csv',sep=';')
+    log.to_csv(join(STATE_PATH, f'{name_file}_status.csv'),sep=';')
     
     with open(g_file) as file:
         graphs = list(graphs(file))
     
-    if not os.path.exists(save_path + '/stategraphs'):
-        os.mkdir(save_path + '/stategraphs')
     current_case = 0
     print('Doing case ' + str(current_case) + ' out of ' + str(len(caseids)))
     
     log['igs'] = log.apply(get_igs_string, args = (col_id_name, mapping, graphs), axis = 1 )
-    log.to_csv(f'{save_path}/{name_file}_with_graphs.csv', index = False, sep = ';')
+    log.to_csv(join(STATE_PATH, f'{name_file}_with_graphs.csv'), index = False, sep = ';')

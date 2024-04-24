@@ -14,6 +14,8 @@ OUTPUT_PATH = join(BASE_PATH, 'Output')
 OUTPUT_DS_PATH = join(OUTPUT_PATH, 'dataset')
 OUTPUT_PN_PATH = join(OUTPUT_PATH, 'petri_nets')
 
+STATE_PATH = join(BASE_PATH, 'State') #******ADD_B******
+
 PREFIX_PATH = join(BASE_PATH, 'Prefix')
 
 # to create
@@ -29,7 +31,6 @@ CHECKPOINT_RETE_PATH = join(BASE_PATH, 'checkpoint_rete')
 CK_BEST_TRAIN_PATH = join(CHECKPOINT_RETE_PATH, 'best_train')
 CK_BEST_TEST_PATH = join(CHECKPOINT_RETE_PATH, 'best_test')
 F1_SCORE_PATH = join(BASE_PATH, 'AndamentoF1Score')
-STATE_PATH = join(BASE_PATH, 'stategraphs') #******ADD_B******
 
 
 # pulizia delle directory
@@ -83,8 +84,8 @@ def load():
     parser.add_argument('--attr_list',
                         default=['bu', 'nrchanges', 'ttmotif', 'plant', 'matgroup', 'polines', 'vendor', 'item'])
     parser.add_argument('--data_dir', default=join(OUTPUT_PATH, 'dataset'))
-    parser.add_argument('--csv_name', default='testCsv.csv')
-    parser.add_argument('--xes_name',  default='testXes.xes')
+    parser.add_argument('--csv_name', default='test.csv')
+    parser.add_argument('--xes_name',  default='test.xes')
     parser.add_argument('--net_name', default=join(OUTPUT_PATH, 'petri_nets'))
     parser.add_argument('--checkpoint_dir', default=join(OUTPUT_PATH, 'checkpoints'))
     parser.add_argument('--dataset', default='p2p')
