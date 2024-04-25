@@ -8,7 +8,7 @@ from torch_geometric.data import InMemoryDataset, Data
 from config import PREFIX_PATH, OUTPUT_DS_PATH, STATE_PATH
 from dotG import get_g_dataframe
 
-from os.path import join
+from os.path import join, exists, isdir
 import string
 
 file_name = None
@@ -362,7 +362,6 @@ def define_target(graph, subgraph):
 
 #****************NEW_ADD_B****************#
 import re
-import os
 
 def read_subgraph(file_path):
     subgraphs = []
@@ -387,6 +386,8 @@ def read_subgraph(file_path):
                 elif match := edge_pattern.match(line):
                     node1_id = int(match.group(1))
                     node2_id = int(match.group(2))
+                    if current_graph is None:
+                        current_graph = nx.Graph()
                     current_graph.add_edge(node1_id, node2_id)
         if current_graph:
             subgraphs.append(current_graph)
@@ -394,8 +395,8 @@ def read_subgraph(file_path):
 
 def add_status(cid, event_pos, subg_dir, Subgraph):
     c_id_ = cid.replace("_", "")
-    file_path = os.path.join(subg_dir, f"{c_id_}_{event_pos}.g")
-    if not os.path.exists(file_path):
+    file_path = join(subg_dir, f"{c_id_}_{event_pos}.g")
+    if not exists(file_path):
         print(f"Il file {file_path} non esiste.")
         return None
     subg = read_subgraph(file_path)
@@ -474,13 +475,13 @@ def create_sub_graph():
 
                 #*******************NEW_ADD_B**********************
                 c_id = graph.nodes[node]['idn']
-
-                if os.path.exists(STATE_PATH) and os.path.isdir(STATE_PATH):
-                    SubGraph.graph['status'] = add_status(c_id, event_num, STATE_PATH, SubGraph)
+                st_path = join(STATE_PATH, 'stategraphs')
+                if exists(st_path): #and isdir(st_path):
+                    SubGraph.graph['status'] = add_status(c_id, event_num, st_path, SubGraph)
                     status.append(SubGraph.graph['status'])
                     #add_status(c_id, event_num, STATE_PATH, SubGraph)
                 elif not not_exist:
-                    print(f"La cartella {STATE_PATH} non esiste! Operazione per l'aggiunta dello stato non eseguita")
+                    print(f"La cartella {st_path} non esiste! Operazione per l'aggiunta dello stato non eseguita")
                     not_exist = True
                 
                 ############################################

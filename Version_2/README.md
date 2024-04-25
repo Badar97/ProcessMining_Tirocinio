@@ -1,5 +1,5 @@
-# Next Activity Prediction with State
-Materials for Next Activity Prediction with State Creation through Graph Neural Networks
+# Next Activity Prediction
+Materials for Next Activity Prediction through Graph Neural Networks
 
 ## Requirements
 - Python 3.10 (mandatory)
@@ -11,20 +11,15 @@ For install, move to ``nextActivityPrediction`` directory, then run: <br>
 ## How it works (brief explaination to improve)
 Please note that code names must be updated, this section is exclusively to illustrate the methodology of our approach.<br>
 - BIG.py:<br>
-<img src="FlowChart/BIG.png" width=30% height=50%><br>
-- STATE.py:<br>
-<img src="FlowChart/STATE.png" width=30% height=50%><br>
+<img src="images/BIG.png" width=30% height=50%><br>
 - DATASET.py:<br>
-<img src="FlowChart/DATASET.png" width=30% height=50%><br>
+<img src="images/DATASET.png" width=30% height=50%><br>
 - TRAINING.py:<br>
-<img src="FlowChart/TRAINING.png" width=30% height=50%><br>
+<img src="images/TRAINING.png" width=30% height=50%><br>
 
 ## How to run
 - To create instance graphs, run:<br>
 ``python BIG.py``
-
-- To create state graphs for dataset enrichment with subgraphs, run:<br>
-``python STATE.py``
 
 - To preprocess instance graphs for DGCNN, run:<br>
 ``python DATASET.py``
